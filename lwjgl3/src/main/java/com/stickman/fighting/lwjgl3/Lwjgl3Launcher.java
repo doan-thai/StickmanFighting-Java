@@ -8,7 +8,33 @@ import com.stickman.fighting.MyFightingGame;
 public class Lwjgl3Launcher {
     public static void main(String[] args) {
         if (StartupHelper.startNewJvmIfRequired()) return; // This handles macOS support and helps on Windows.
+        applyLaunchArgs(args);
         createApplication();
+    }
+
+    private static void applyLaunchArgs(String[] args) {
+        if (args == null || args.length == 0) return;
+        for (String arg : args) {
+            if ("--qa-ui".equals(arg)) {
+                System.setProperty("ui.qa", "true");
+                continue;
+            }
+            if ("--qa-open-settings".equals(arg)) {
+                System.setProperty("ui.qa.openSettings", "true");
+                continue;
+            }
+            if ("--qa-layout-check".equals(arg)) {
+                System.setProperty("ui.qa.checkLayout", "true");
+                continue;
+            }
+            if ("--qa-capture".equals(arg)) {
+                System.setProperty("ui.qa.captureScreenshot", "true");
+                continue;
+            }
+            if ("--qa-exit-after-shot".equals(arg)) {
+                System.setProperty("ui.qa.exitAfterShot", "true");
+            }
+        }
     }
 
     private static Lwjgl3Application createApplication() {

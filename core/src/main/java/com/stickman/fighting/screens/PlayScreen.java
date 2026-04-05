@@ -487,9 +487,9 @@ public class PlayScreen implements Screen {
         Label pauseTitle = new Label("TẠM DỪNG", skin, "title");
         pauseTitle.setAlignment(Align.center);
 
-        TextButton btnResume  = new TextButton("TIẾP TỤC", skin, "primary");
-        TextButton btnRestart = new TextButton("CHƠI LẠI", skin, "success");
-        TextButton btnQuit    = new TextButton("THOÁT",    skin, "danger");
+        TextButton btnResume  = new TextButton("TIẾP TỤC", skin, "resume");
+        TextButton btnRestart = new TextButton("CHƠI LẠI", skin, "restart");
+        TextButton btnQuit    = new TextButton("THOÁT",    skin, "quit");
 
         btnResume.addListener(new ChangeListener() {
             @Override

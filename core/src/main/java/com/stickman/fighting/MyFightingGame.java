@@ -4,7 +4,9 @@ package com.stickman.fighting;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.stickman.fighting.screens.MainMenuScreen;
+import com.stickman.fighting.screens.SettingScreen;
 import com.stickman.fighting.utils.SoundManager;
+import com.stickman.fighting.utils.UiQaConfig;
 
 public class MyFightingGame extends Game {
 
@@ -17,6 +19,13 @@ public class MyFightingGame extends Game {
         // Khởi tạo SoundManager TRƯỚC khi vào màn hình đầu tiên
         // (LibGDX audio context đã sẵn sàng tại đây)
         SoundManager.getInstance().initialize();
+
+        if (UiQaConfig.autoOpenSettingsScreen()) {
+            MainMenuScreen mainMenuScreen = new MainMenuScreen(this);
+            setScreen(mainMenuScreen);
+            setScreen(new SettingScreen(this, mainMenuScreen));
+            return;
+        }
 
         setScreen(new MainMenuScreen(this));
     }

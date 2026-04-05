@@ -150,27 +150,35 @@ public final class WoodenSkin {
         skin.add("default", btnStyle, TextButton.TextButtonStyle.class);
         skin.add("wood", btnStyle, TextButton.TextButtonStyle.class);
 
-        Color goldColor = new Color(0xC8963CFF);
-        Color darkBrown = new Color(0x2A1400FF);
-        Color redOrange = new Color(0xB03A20FF);
-        Color creamLight = new Color(0xFFE8D0FF);
-        Color goldenBrown = new Color(0xA08840FF);
-        Color creamPale = new Color(0xFFF5D6FF);
+        Color goldColor = new Color(0xCE9C3EFF);
+        Color darkBrown = new Color(0x241302FF);
+        Color redOrange = new Color(0xB33A1FFF);
+        Color creamLight = new Color(0xFFF0D8FF);
+        Color goldenBrown = new Color(0xA4883FFF);
+        Color creamPale = new Color(0xFFF4D2FF);
+
+        Color primaryBorder = new Color(0x5D2D0BFF);
+        Color successBorder = new Color(0x4A170DFF);
+        Color lightBorder = new Color(0x4E3716FF);
 
         TextButton.TextButtonStyle primaryStyle = new TextButton.TextButtonStyle();
         primaryStyle.font = font;
         primaryStyle.fontColor = darkBrown;
-        primaryStyle.up = createRoundedColorDrawable(goldColor, goldColor, 320, 75, 36);
-        primaryStyle.over = createRoundedColorDrawable(goldColor.cpy().mul(1.1f), goldColor.cpy().mul(1.1f), 320, 75, 36);
-        primaryStyle.down = createRoundedColorDrawable(goldColor.cpy().mul(0.92f), goldColor.cpy().mul(0.92f), 320, 75, 36);
+        primaryStyle.overFontColor = new Color(0x1B0F02FF);
+        primaryStyle.downFontColor = new Color(0x1B0F02FF);
+        primaryStyle.up = createRoundedColorDrawable(goldColor, primaryBorder, 320, 75, 36);
+        primaryStyle.over = createRoundedColorDrawable(goldColor.cpy().mul(1.08f), primaryBorder.cpy().mul(0.95f), 320, 75, 36);
+        primaryStyle.down = createRoundedColorDrawable(goldColor.cpy().mul(0.90f), primaryBorder, 320, 75, 36);
         skin.add("primary", primaryStyle, TextButton.TextButtonStyle.class);
 
         TextButton.TextButtonStyle successStyle = new TextButton.TextButtonStyle();
         successStyle.font = font;
         successStyle.fontColor = creamLight;
-        successStyle.up = createRoundedColorDrawable(redOrange, redOrange, 220, 56, 28);
-        successStyle.over = createRoundedColorDrawable(redOrange.cpy().mul(1.1f), redOrange.cpy().mul(1.1f), 220, 56, 28);
-        successStyle.down = createRoundedColorDrawable(redOrange.cpy().mul(0.92f), redOrange.cpy().mul(0.92f), 220, 56, 28);
+        successStyle.overFontColor = new Color(1f, 0.98f, 0.92f, 1f);
+        successStyle.downFontColor = new Color(0.95f, 0.89f, 0.79f, 1f);
+        successStyle.up = createRoundedColorDrawable(redOrange, successBorder, 220, 56, 28);
+        successStyle.over = createRoundedColorDrawable(redOrange.cpy().mul(1.08f), successBorder.cpy().mul(0.95f), 220, 56, 28);
+        successStyle.down = createRoundedColorDrawable(redOrange.cpy().mul(0.90f), successBorder, 220, 56, 28);
         skin.add("success", successStyle, TextButton.TextButtonStyle.class);
 
         TextButton.TextButtonStyle dangerStyle = makeButtonStyleFromFileOrColor(
@@ -185,10 +193,54 @@ public final class WoodenSkin {
         TextButton.TextButtonStyle lightStyle = new TextButton.TextButtonStyle();
         lightStyle.font = font;
         lightStyle.fontColor = creamPale;
-        lightStyle.up = createRoundedColorDrawable(goldenBrown, goldColor, 220, 56, 28);
-        lightStyle.over = createRoundedColorDrawable(goldenBrown.cpy().mul(1.1f), goldColor.cpy().mul(1.1f), 220, 56, 28);
-        lightStyle.down = createRoundedColorDrawable(goldenBrown.cpy().mul(0.92f), goldColor.cpy().mul(0.92f), 220, 56, 28);
+        lightStyle.overFontColor = new Color(1f, 0.98f, 0.90f, 1f);
+        lightStyle.downFontColor = new Color(0.95f, 0.89f, 0.76f, 1f);
+        lightStyle.up = createRoundedColorDrawable(goldenBrown, lightBorder, 220, 56, 28);
+        lightStyle.over = createRoundedColorDrawable(goldenBrown.cpy().mul(1.08f), lightBorder.cpy().mul(0.95f), 220, 56, 28);
+        lightStyle.down = createRoundedColorDrawable(goldenBrown.cpy().mul(0.90f), lightBorder, 220, 56, 28);
         skin.add("light", lightStyle, TextButton.TextButtonStyle.class);
+
+        TextButton.TextButtonStyle restartStyle = new TextButton.TextButtonStyle();
+        restartStyle.font = font;
+        restartStyle.fontColor = new Color(0xFFF5E3FF);
+        restartStyle.overFontColor = new Color(0xFFFBEFFF);
+        restartStyle.downFontColor = new Color(0xF2E2C8FF);
+        Color restartUp = new Color(0xD2A23EFF);
+        Color restartOver = new Color(0xE0B14BFF);
+        Color restartDown = new Color(0xBE8F31FF);
+        Color restartBorder = new Color(0x5F3A09FF);
+        restartStyle.up = createRoundedColorDrawable(restartUp, restartBorder, 300, 64, 30);
+        restartStyle.over = createRoundedColorDrawable(restartOver, restartBorder.cpy().mul(0.95f), 300, 64, 30);
+        restartStyle.down = createRoundedColorDrawable(restartDown, restartBorder, 300, 64, 30);
+        skin.add("restart", restartStyle, TextButton.TextButtonStyle.class);
+
+        TextButton.TextButtonStyle quitStyle = new TextButton.TextButtonStyle();
+        quitStyle.font = font;
+        quitStyle.fontColor = new Color(0xFFF1E9FF);
+        quitStyle.overFontColor = new Color(1f, 0.97f, 0.92f, 1f);
+        quitStyle.downFontColor = new Color(0.95f, 0.89f, 0.82f, 1f);
+        Color quitUp = new Color(0xB74431FF);
+        Color quitOver = new Color(0xC8523EFF);
+        Color quitDown = new Color(0x9C3626FF);
+        Color quitBorder = new Color(0x4A130CFF);
+        quitStyle.up = createRoundedColorDrawable(quitUp, quitBorder, 300, 64, 30);
+        quitStyle.over = createRoundedColorDrawable(quitOver, quitBorder.cpy().mul(0.95f), 300, 64, 30);
+        quitStyle.down = createRoundedColorDrawable(quitDown, quitBorder, 300, 64, 30);
+        skin.add("quit", quitStyle, TextButton.TextButtonStyle.class);
+
+        TextButton.TextButtonStyle resumeStyle = new TextButton.TextButtonStyle();
+        resumeStyle.font = font;
+        resumeStyle.fontColor = new Color(0xEFFFF0FF);
+        resumeStyle.overFontColor = new Color(0xF6FFF7FF);
+        resumeStyle.downFontColor = new Color(0xDEF7E0FF);
+        Color resumeUp = new Color(0x4DAA4FFF);
+        Color resumeOver = new Color(0x5ABB5CFF);
+        Color resumeDown = new Color(0x3F9441FF);
+        Color resumeBorder = new Color(0x1E4E20FF);
+        resumeStyle.up = createRoundedColorDrawable(resumeUp, resumeBorder, 300, 64, 30);
+        resumeStyle.over = createRoundedColorDrawable(resumeOver, resumeBorder.cpy().mul(0.95f), 300, 64, 30);
+        resumeStyle.down = createRoundedColorDrawable(resumeDown, resumeBorder, 300, 64, 30);
+        skin.add("resume", resumeStyle, TextButton.TextButtonStyle.class);
 
         TextButton.TextButtonStyle iconStyle = makeButtonStyle(font,
             new Color(0.97f, 0.86f, 0.35f, 1f),
@@ -329,15 +381,32 @@ public final class WoodenSkin {
         pixmap.setColor(0f, 0f, 0f, 0f);
         pixmap.fill();
 
-        // Vẽ rounded-rect theo pixel để tránh artefact vòng tròn/chữ thập ở góc.
+        // Tạo độ nổi bằng chuyển sắc dọc và bóng nhẹ ở nửa dưới.
         for (int y = 0; y < h; y++) {
             for (int x = 0; x < w; x++) {
                 if (!isInsideRoundedRect(x, y, w, h, r)) continue;
-                pixmap.setColor(fill);
+                float ny = h <= 1 ? 0f : (float) y / (float) (h - 1);
+                float shade = 1.12f - (0.26f * ny);
+                if (ny > 0.62f) shade *= 0.92f;
+                float rr = Math.min(1f, fill.r * shade);
+                float gg = Math.min(1f, fill.g * shade);
+                float bb = Math.min(1f, fill.b * shade);
+                pixmap.setColor(rr, gg, bb, fill.a);
                 pixmap.drawPixel(x, y);
             }
         }
 
+        // Dải highlight mỏng phía trên để tăng tương phản.
+        float highlightAlpha = 0.10f;
+        for (int y = 1; y < Math.max(2, h / 4); y++) {
+            for (int x = 1; x < w - 1; x++) {
+                if (!isInsideRoundedRect(x, y, w, h, r)) continue;
+                pixmap.setColor(1f, 1f, 1f, highlightAlpha);
+                pixmap.drawPixel(x, y);
+            }
+        }
+
+        // Viền ngoài rõ hơn để nút không bị chìm vào background.
         for (int y = 0; y < h; y++) {
             for (int x = 0; x < w; x++) {
                 if (!isInsideRoundedRect(x, y, w, h, r)) continue;
@@ -346,6 +415,22 @@ public final class WoodenSkin {
                     || !isInsideRoundedRect(x, y - 1, w, h, r)
                     || !isInsideRoundedRect(x, y + 1, w, h, r)) {
                     pixmap.setColor(border);
+                    pixmap.drawPixel(x, y);
+                }
+            }
+        }
+
+        // Viền trong sáng nhẹ giúp cạnh sắc nét hơn trên nền tối.
+        for (int y = 1; y < h - 1; y++) {
+            for (int x = 1; x < w - 1; x++) {
+                if (!isInsideRoundedRect(x, y, w, h, r)) continue;
+                boolean hasOuter = !isInsideRoundedRect(x - 2, y, w, h, r)
+                    || !isInsideRoundedRect(x + 2, y, w, h, r)
+                    || !isInsideRoundedRect(x, y - 2, w, h, r)
+                    || !isInsideRoundedRect(x, y + 2, w, h, r);
+                if (hasOuter) {
+                    float a = y < (h / 2) ? 0.22f : 0.14f;
+                    pixmap.setColor(1f, 1f, 1f, a);
                     pixmap.drawPixel(x, y);
                 }
             }

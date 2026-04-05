@@ -17,6 +17,7 @@ import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.stickman.fighting.MyFightingGame;
@@ -130,7 +131,7 @@ public class MainMenuScreen implements Screen {
 
         // --- Title ---
         BitmapFont titleFont = skin.get("menu-title-font", BitmapFont.class);
-        Actor titleLabel = new ShadowTitleActor(titleFont, "STICKMAN FIGHTING");
+        ShadowTitleActor titleLabel = new ShadowTitleActor(titleFont, "STICKMAN FIGHTING");
         titleLabel.setColor(1f, 1f, 1f, 0f);
 
         table.add(titleLabel).width(860).height(120).padBottom(56).row();
@@ -185,7 +186,7 @@ public class MainMenuScreen implements Screen {
 
         table.add(bottomRow).padTop(8f);
 
-        titleLabel.addAction(Actions.fadeIn(0.55f));
+        titleLabel.addAction(Actions.fadeIn(0.45f));
         btnStart.addAction(Actions.sequence(Actions.delay(0.18f), Actions.fadeIn(0.38f)));
         bottomRow.addAction(Actions.sequence(Actions.delay(0.26f), Actions.fadeIn(0.4f)));
 
@@ -243,13 +244,13 @@ public class MainMenuScreen implements Screen {
     btn1P.setStyle(onePlayer ? modeSelectedStyle : modeDefaultStyle);  // ✓ đúng
     btn2P.setStyle(onePlayer ? modeDefaultStyle : modeSelectedStyle);  // ✓ đúng
 
-    // Màu chữ khi được chọn sáng hơn
+    // Màu chữ khi được chọn sáng hơn nhưng vẫn giữ tương phản ổn định.
     btn1P.getLabel().setColor(onePlayer
-        ? new Color(0.98f, 0.95f, 0.84f, 1f)   // sáng = đang chọn
-        : new Color(0.95f, 0.86f, 0.67f, 1f));  // tối hơn = không chọn
+        ? new Color(1.00f, 0.96f, 0.86f, 1f)   // sáng = đang chọn
+        : new Color(0.98f, 0.91f, 0.74f, 1f));  // tối hơn = không chọn
     btn2P.getLabel().setColor(onePlayer
-        ? new Color(0.95f, 0.86f, 0.67f, 1f)
-        : new Color(0.98f, 0.95f, 0.84f, 1f));
+        ? new Color(0.98f, 0.91f, 0.74f, 1f)
+        : new Color(1.00f, 0.96f, 0.86f, 1f));
 }
 
     private void animateModeSelection(TextButton button) {
@@ -273,6 +274,7 @@ public class MainMenuScreen implements Screen {
         private final BitmapFont font;
         private final String text;
         private final GlyphLayout layout;
+        private float elapsed;
 
         private ShadowTitleActor(BitmapFont font, String text) {
             this.font = font;
@@ -281,18 +283,62 @@ public class MainMenuScreen implements Screen {
         }
 
         @Override
+        public void act(float delta) {
+            super.act(delta);
+            elapsed += delta;
+        }
+
+        @Override
         public void draw(Batch batch, float parentAlpha) {
             float alpha = getColor().a * parentAlpha;
             float x = getX() + (getWidth() - layout.width) * 0.5f;
             float y = getY() + (getHeight() + layout.height) * 0.5f;
+            float pulse = 0.86f + 0.14f * MathUtils.sin(elapsed * 2.6f);
 
-            // Vẽ shadow (offset đen) trước
-            font.setColor(0.1f, 0.05f, 0f, 0.85f * alpha);
-            font.draw(batch, text, x + 4f, y - 4f);
+            Color outerStroke = new Color(0.03f, 0.02f, 0.01f, 0.95f * alpha);
+            Color innerStroke = new Color(0.96f, 0.95f, 0.86f, 0.78f * alpha);
+            Color fillMain = new Color(1.0f, 0.82f, 0.18f, alpha);
+            Color fillHot = new Color(1.0f, 0.56f, 0.06f, 0.70f * alpha);
+            Color glow = new Color(1.0f, 0.73f, 0.20f, 0.28f * pulse * alpha);
 
-            // Vẽ chữ vàng đè lên
-            font.setColor(0.91f, 0.75f, 0.24f, alpha);
+            // Glow mềm phía sau để chữ nổi hơn trên mọi nền.
+            font.setColor(glow);
+            font.draw(batch, text, x - 3f, y + 3f);
+            font.draw(batch, text, x + 3f, y + 3f);
+            font.draw(batch, text, x - 3f, y - 3f);
+            font.draw(batch, text, x + 3f, y - 3f);
+
+            // Viền đen dày theo 8 hướng.
+            font.setColor(outerStroke);
+            font.draw(batch, text, x - 3f, y);
+            font.draw(batch, text, x + 3f, y);
+            font.draw(batch, text, x, y - 3f);
+            font.draw(batch, text, x, y + 3f);
+            font.draw(batch, text, x - 2f, y - 2f);
+            font.draw(batch, text, x + 2f, y - 2f);
+            font.draw(batch, text, x - 2f, y + 2f);
+            font.draw(batch, text, x + 2f, y + 2f);
+
+            // Viền sáng mỏng bên trong.
+            font.setColor(innerStroke);
+            font.draw(batch, text, x - 1f, y + 1f);
+            font.draw(batch, text, x + 1f, y + 1f);
+            font.draw(batch, text, x - 1f, y - 1f);
+            font.draw(batch, text, x + 1f, y - 1f);
+
+            // Fill vàng chính.
+            font.setColor(fillMain);
             font.draw(batch, text, x, y);
+
+            // Lớp "nóng" phía trên tạo cảm giác chữ lửa/kim loại.
+            font.setColor(fillHot);
+            font.draw(batch, text, x, y + 1.6f);
+
+            // Sparkle nhẹ chạy nhịp theo thời gian.
+            font.setColor(1f, 0.94f, 0.68f, (0.22f + 0.18f * pulse) * alpha);
+            font.draw(batch, text, x + 1f, y + 2.6f);
+
+            font.setColor(Color.WHITE);
         }
     }
 

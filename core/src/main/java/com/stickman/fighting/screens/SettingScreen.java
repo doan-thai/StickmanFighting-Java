@@ -1,14 +1,18 @@
 package com.stickman.fighting.screens;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.PixmapIO;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
@@ -21,6 +25,7 @@ import com.stickman.fighting.MyFightingGame;
 import com.stickman.fighting.utils.Constants;
 import com.stickman.fighting.utils.GameSettings;
 import com.stickman.fighting.utils.SoundManager;
+import com.stickman.fighting.utils.UiQaConfig;
 
 /**
  * SettingScreen — Hiển thị như một Overlay/Popup bảng gỗ đè lên màn hình trước.
@@ -44,6 +49,16 @@ import com.stickman.fighting.utils.SoundManager;
  */
 public class SettingScreen implements Screen {
 
+    private static final float TIME_SELECT_BOX_WIDTH = 228f;
+    private static final float LANG_SELECT_BOX_WIDTH = 228f;
+    private static final float SELECT_BOX_HEIGHT = 50f;
+    private static final float PANEL_WIDTH = 616f; // 560 * 1.10
+    private static final int PANEL_TEXTURE_HEIGHT = 462; // 420 * 1.10
+    private static final float CONTENT_ROW_WIDTH = PANEL_WIDTH * 0.92f; // shrink inner bars by 8%
+    private static final float LABEL_COL_WIDTH = 210f;
+    private static final float CONTROL_COL_WIDTH = 238f;
+    private static final float VALUE_COL_WIDTH = 68f;
+
     // ── Dependencies ──────────────────────────────────────────────────────────
     private final MyFightingGame game;
     private final Screen         previousScreen;
@@ -60,7 +75,12 @@ public class SettingScreen implements Screen {
     private SelectBox<String> selectLang;
     private Label             labelVolumeVal;
     private Label             labelHpVal;
+    private Table             panelTable;
+    private TextButton        btnClose;
     private boolean           closeRequested;
+    private boolean           qaLayoutChecked;
+    private boolean           qaScreenshotTaken;
+    private int               qaFrameCounter;
 
     // ── Textures (tracked để dispose) ────────────────────────────────────────
     private Texture dimTexture;
@@ -79,11 +99,7 @@ public class SettingScreen implements Screen {
     private Texture sliderKnobOverTex;
 
     // SelectBox textures — tracked riêng
-    private Texture selectBgTex;
-    private Texture selectBgOverTex;
-    private Texture selectListBgTex;
-    private Texture selectSelectionTex;
-    private Texture selectScrollBgTex;
+    private final Array<Texture> selectTextures = new Array<>();
 
     // Volume toggle
     private ImageButton                btnVolumeToggle;
@@ -108,6 +124,9 @@ public class SettingScreen implements Screen {
         skin = buildSettingSkin();
         buildUI();
         closeRequested = false;
+        qaLayoutChecked = false;
+        qaScreenshotTaken = false;
+        qaFrameCounter = 0;
     }
 
     @Override
@@ -133,6 +152,14 @@ public class SettingScreen implements Screen {
 
         stage.act(delta);
         stage.draw();
+
+        if (UiQaConfig.isEnabled()) {
+            runQaAutomation();
+        }
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.F9)) {
+            captureScreenshot("manual");
+        }
     }
 
     @Override
@@ -163,7 +190,7 @@ public class SettingScreen implements Screen {
         Table root = new Table();
         root.setFillParent(true);
         root.center();
-        root.add(buildPanel()).width(560).pad(20);
+        root.add(buildPanel()).width(PANEL_WIDTH).pad(20);
         stage.addActor(root);
     }
 
@@ -174,17 +201,18 @@ public class SettingScreen implements Screen {
      *   row × 4   → [Label] [Widget] [Giá trị]
      */
     private Table buildPanel() {
-        Table panel = new Table();
-        panel.setBackground(new TextureRegionDrawable(new TextureRegion(panelTexture)));
+        panelTable = new Table();
+        panelTable.setBackground(new TextureRegionDrawable(new TextureRegion(panelTexture)));
+        panelTable.setClip(true);
 
-        panel.add(buildHeader()).expandX().fillX().row();
-        panel.add(buildDivider()).expandX().fillX().height(3).padBottom(6).row();
-        panel.add(buildVolumeRow()).expandX().fillX().padBottom(4).row();
-        panel.add(buildTimeRow()).expandX().fillX().padBottom(4).row();
-        panel.add(buildLanguageRow()).expandX().fillX().padBottom(4).row();
-        panel.add(buildHpRow()).expandX().fillX().padBottom(8).row();
+        panelTable.add(buildHeader()).width(CONTENT_ROW_WIDTH).center().row();
+        panelTable.add(buildDivider()).width(CONTENT_ROW_WIDTH).center().height(3).padBottom(6).row();
+        panelTable.add(buildVolumeRow()).width(CONTENT_ROW_WIDTH).center().padBottom(4).row();
+        panelTable.add(buildTimeRow()).width(CONTENT_ROW_WIDTH).center().padBottom(4).row();
+        panelTable.add(buildLanguageRow()).width(CONTENT_ROW_WIDTH).center().padBottom(4).row();
+        panelTable.add(buildHpRow()).width(CONTENT_ROW_WIDTH).center().padBottom(8).row();
 
-        return panel;
+        return panelTable;
     }
 
     // ── Header ────────────────────────────────────────────────────────────────
@@ -197,8 +225,8 @@ public class SettingScreen implements Screen {
         Label title = new Label("CÀI ĐẶT", skin, "header");
         title.setAlignment(Align.left);
 
-        // Nút ĐÓNG — bo góc rounded
-        TextButton btnClose = new TextButton("ĐÓNG", skin, "close");
+        // Nút đóng theo tông gỗ/cổ điển để đồng bộ toàn bộ panel.
+        btnClose = new TextButton("X", skin, "close");
         btnClose.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
@@ -208,8 +236,143 @@ public class SettingScreen implements Screen {
         });
 
         header.add(title).expandX().left();
-        header.add(btnClose).right().width(120).height(44);
+        header.add(btnClose).right().width(108).height(44);
         return header;
+    }
+
+    private void runQaAutomation() {
+        qaFrameCounter++;
+
+        if (!qaLayoutChecked && UiQaConfig.runLayoutChecks() && qaFrameCounter >= 2) {
+            qaLayoutChecked = true;
+            validateLayoutAndReport();
+        }
+
+        int screenshotDelay = Math.max(2, UiQaConfig.screenshotDelayFrames());
+        if (!qaScreenshotTaken && UiQaConfig.captureScreenshot() && qaFrameCounter >= screenshotDelay) {
+            qaScreenshotTaken = true;
+            captureScreenshot("auto");
+            if (UiQaConfig.exitAfterScreenshot()) {
+                Gdx.app.log("UI-QA", "Exit after screenshot is enabled. Closing app.");
+                Gdx.app.exit();
+            }
+        }
+    }
+
+    private void validateLayoutAndReport() {
+        if (panelTable == null || selectTime == null || selectLang == null) {
+            Gdx.app.error("UI-QA", "Layout check skipped because key widgets are not ready.");
+            return;
+        }
+
+        Rectangle panelRect = getActorStageRect(panelTable);
+        Rectangle timeRect = getActorStageRect(selectTime);
+        Rectangle langRect = getActorStageRect(selectLang);
+        Rectangle volumeValRect = getActorStageRect(labelVolumeVal);
+        Rectangle hpValRect = getActorStageRect(labelHpVal);
+
+        int warnings = 0;
+        warnings += assertInside(panelRect, timeRect, "selectTime");
+        warnings += assertInside(panelRect, langRect, "selectLang");
+
+        float leftDiff = Math.abs(timeRect.x - langRect.x);
+        if (leftDiff > 1.5f) {
+            warnings++;
+            Gdx.app.error("UI-QA", "Left edges are not aligned: delta=" + leftDiff);
+        }
+
+        float panelRight = panelRect.x + panelRect.width;
+        float volumeGap = panelRight - (volumeValRect.x + volumeValRect.width);
+        if (volumeGap < 8f) {
+            warnings++;
+            Gdx.app.error("UI-QA", "Volume value is too close to panel right edge: gap=" + volumeGap);
+        }
+
+        float hpGap = panelRight - (hpValRect.x + hpValRect.width);
+        if (hpGap < 8f) {
+            warnings++;
+            Gdx.app.error("UI-QA", "HP value is too close to panel right edge: gap=" + hpGap);
+        }
+
+        if (btnClose != null && btnClose.getWidth() < 100f) {
+            warnings++;
+            Gdx.app.error("UI-QA", "Close button width is smaller than expected: " + btnClose.getWidth());
+        }
+
+        float timeBgWidth = selectTime.getStyle().background != null
+            ? selectTime.getStyle().background.getMinWidth()
+            : 0f;
+        if (Math.abs(timeBgWidth - selectTime.getWidth()) > 1.5f) {
+            warnings++;
+            Gdx.app.error("UI-QA", "Time SelectBox background width mismatch: bg=" + timeBgWidth
+                + ", actor=" + selectTime.getWidth());
+        }
+
+        float langBgWidth = selectLang.getStyle().background != null
+            ? selectLang.getStyle().background.getMinWidth()
+            : 0f;
+        if (Math.abs(langBgWidth - selectLang.getWidth()) > 1.5f) {
+            warnings++;
+            Gdx.app.error("UI-QA", "Language SelectBox background width mismatch: bg=" + langBgWidth
+                + ", actor=" + selectLang.getWidth());
+        }
+
+        if (warnings == 0) {
+            Gdx.app.log("UI-QA", "SettingScreen layout checks passed with 0 warnings.");
+        } else {
+            Gdx.app.error("UI-QA", "SettingScreen layout checks finished with warnings=" + warnings);
+        }
+    }
+
+    private Rectangle getActorStageRect(Actor actor) {
+        Vector2 position = actor.localToStageCoordinates(new Vector2(0f, 0f));
+        return new Rectangle(position.x, position.y, actor.getWidth(), actor.getHeight());
+    }
+
+    private int assertInside(Rectangle parent, Rectangle child, String name) {
+        boolean inside = child.x >= parent.x
+            && child.y >= parent.y
+            && child.x + child.width <= parent.x + parent.width
+            && child.y + child.height <= parent.y + parent.height;
+        if (inside) return 0;
+
+        Gdx.app.error("UI-QA", name + " is outside panel bounds."
+            + " parent=" + parent + ", child=" + child);
+        return 1;
+    }
+
+    private void captureScreenshot(String source) {
+        Pixmap rawPixmap = Pixmap.createFromFrameBuffer(
+            0,
+            0,
+            Gdx.graphics.getBackBufferWidth(),
+            Gdx.graphics.getBackBufferHeight());
+        Pixmap pixmap = flipVertically(rawPixmap);
+        try {
+            String fileName = "setting_" + System.currentTimeMillis() + "_" + source + ".png";
+            FileHandle output = Gdx.files.local(UiQaConfig.outputDir()).child(fileName);
+            output.parent().mkdirs();
+            PixmapIO.writePNG(output, pixmap);
+            Gdx.app.log("UI-QA", "Screenshot saved: " + output.path());
+        } finally {
+            rawPixmap.dispose();
+            pixmap.dispose();
+        }
+    }
+
+    private Pixmap flipVertically(Pixmap source) {
+        Pixmap flipped = new Pixmap(source.getWidth(), source.getHeight(), source.getFormat());
+        for (int y = 0; y < source.getHeight(); y++) {
+            flipped.drawPixmap(
+                source,
+                0,
+                y,
+                0,
+                source.getHeight() - 1 - y,
+                source.getWidth(),
+                1);
+        }
+        return flipped;
     }
 
     // ── Row: Âm Thanh ────────────────────────────────────────────────────────
@@ -217,10 +380,10 @@ public class SettingScreen implements Screen {
     private Table buildVolumeRow() {
         Table row = buildRowBase(true);
 
-        // Trái: icon loa + label
-        Table leftCell = new Table();
-        leftCell.left();
+        Label label = new Label("Âm thanh", skin, "rowLabel");
+        row.add(label).width(LABEL_COL_WIDTH).left();
 
+        // Slider âm lượng (0 → 1)
         volumeToggleStyle = buildVolumeToggleStyle();
         btnVolumeToggle = new ImageButton(volumeToggleStyle);
         btnVolumeToggle.addListener(new ChangeListener() {
@@ -230,12 +393,6 @@ public class SettingScreen implements Screen {
             }
         });
 
-        Label label = new Label("Âm thanh", skin, "rowLabel");
-        leftCell.add(btnVolumeToggle).size(38).padRight(10);
-        leftCell.add(label).left();
-        row.add(leftCell).width(220).left().padLeft(20);
-
-        // Slider âm lượng (0 → 1)
         sliderVolume = new Slider(0f, 1f, 0.01f, false, skin, "setting");
         sliderVolume.setValue(settings.getVolume());
         if (sliderVolume.getValue() > 0.001f) {
@@ -266,8 +423,13 @@ public class SettingScreen implements Screen {
 
         updateVolumeToggleIcon();
 
-        row.add(sliderVolume).width(190).height(24).padLeft(10).padRight(10);
-        row.add(labelVolumeVal).width(60).right().padRight(16);
+        Table controlCell = new Table();
+        controlCell.left();
+        controlCell.add(btnVolumeToggle).size(30).padRight(8);
+        controlCell.add(sliderVolume).width(190).height(24);
+
+        row.add(controlCell).width(CONTROL_COL_WIDTH).left();
+        row.add(labelVolumeVal).width(VALUE_COL_WIDTH).right().padRight(4);
         return row;
     }
 
@@ -276,15 +438,15 @@ public class SettingScreen implements Screen {
     private Table buildTimeRow() {
         Table row = buildRowBase(false);
 
-        Label iconLabel = new Label("Thời gian", skin, "rowLabel");
-        row.add(iconLabel).width(220).left().padLeft(20);
+        Label label = new Label("Thời gian", skin, "rowLabel");
+        row.add(label).width(LABEL_COL_WIDTH).left();
 
         Array<String> timeOptions = new Array<>();
         timeOptions.add("60 giây");
         timeOptions.add("120 giây");
         timeOptions.add("180 giây");
 
-        selectTime = new SelectBox<>(skin, "setting");
+        selectTime = new SelectBox<>(skin, "setting-time");
         selectTime.setItems(timeOptions);
 
         switch (settings.getRoundTime()) {
@@ -307,8 +469,13 @@ public class SettingScreen implements Screen {
         });
 
         selectTime.setAlignment(Align.left);
-        row.add(selectTime).width(210).height(52).padLeft(10).padRight(10);
-        row.add(new Label("", skin)).width(60);
+
+        Table controlCell = new Table();
+        controlCell.left();
+        controlCell.add(selectTime).width(TIME_SELECT_BOX_WIDTH).height(SELECT_BOX_HEIGHT);
+
+        row.add(controlCell).width(CONTROL_COL_WIDTH).left();
+        row.add(new Label("", skin)).width(VALUE_COL_WIDTH).padRight(4);
         return row;
     }
 
@@ -317,14 +484,14 @@ public class SettingScreen implements Screen {
     private Table buildLanguageRow() {
         Table row = buildRowBase(true);
 
-        Label iconLabel = new Label("Ngôn ngữ", skin, "rowLabel");
-        row.add(iconLabel).width(220).left().padLeft(20);
+        Label label = new Label("Ngôn ngữ", skin, "rowLabel");
+        row.add(label).width(LABEL_COL_WIDTH).left();
 
         Array<String> langOptions = new Array<>();
         langOptions.add("Tiếng Việt");
         langOptions.add("English");
 
-        selectLang = new SelectBox<>(skin, "setting");
+        selectLang = new SelectBox<>(skin, "setting-lang");
         selectLang.setItems(langOptions);
 
         if ("English".equals(settings.getLanguage())) {
@@ -343,8 +510,13 @@ public class SettingScreen implements Screen {
         });
 
         selectLang.setAlignment(Align.left);
-        row.add(selectLang).width(210).height(52).padLeft(10).padRight(10);
-        row.add(new Label("", skin)).width(60);
+
+        Table controlCell = new Table();
+        controlCell.left();
+        controlCell.add(selectLang).width(LANG_SELECT_BOX_WIDTH).height(SELECT_BOX_HEIGHT);
+
+        row.add(controlCell).width(CONTROL_COL_WIDTH).left();
+        row.add(new Label("", skin)).width(VALUE_COL_WIDTH).padRight(4);
         return row;
     }
 
@@ -353,8 +525,8 @@ public class SettingScreen implements Screen {
     private Table buildHpRow() {
         Table row = buildRowBase(false);
 
-        Label iconLabel = new Label("Thanh máu", skin, "rowLabel");
-        row.add(iconLabel).width(220).left().padLeft(20);
+        Label label = new Label("Thanh máu", skin, "rowLabel");
+        row.add(label).width(LABEL_COL_WIDTH).left();
 
         // Slider HP scale (0.5 → 2.0, bước 0.1)
         sliderHp = new Slider(0.5f, 2.0f, 0.1f, false, skin, "setting");
@@ -376,8 +548,12 @@ public class SettingScreen implements Screen {
             }
         });
 
-        row.add(sliderHp).width(190).height(24).padLeft(10).padRight(10);
-        row.add(labelHpVal).width(60).right().padRight(16);
+        Table controlCell = new Table();
+        controlCell.left();
+        controlCell.add(sliderHp).width(190).height(24);
+
+        row.add(controlCell).width(CONTROL_COL_WIDTH).left();
+        row.add(labelHpVal).width(VALUE_COL_WIDTH).right().padRight(4);
         return row;
     }
 
@@ -390,7 +566,7 @@ public class SettingScreen implements Screen {
         Table row = new Table();
         row.setBackground(new TextureRegionDrawable(
             new TextureRegion(light ? rowTexture : rowAltTexture)));
-        row.pad(10, 0, 10, 0);
+        row.pad(6, 16, 6, 16);
         return row;
     }
 
@@ -511,7 +687,7 @@ public class SettingScreen implements Screen {
      *   "header"    – Label tiêu đề to, màu vàng kem
      *   "rowLabel"  – Label từng dòng cài đặt
      *   "rowValue"  – Label hiển thị giá trị số (%, giây…)
-     *   "close"     – TextButton nút đóng (đỏ nâu, bo góc)
+    *   "close"     – TextButton nút đóng (gỗ đậm, bo góc nhẹ)
      *   "setting"   – Slider & SelectBox style
      */
     private Skin buildSettingSkin() {
@@ -522,11 +698,15 @@ public class SettingScreen implements Screen {
         BitmapFont fontRow     = com.stickman.fighting.ui.WoodenSkin.createUIFont(24);
         BitmapFont fontValue   = com.stickman.fighting.ui.WoodenSkin.createUIFont(24);
         BitmapFont fontDefault = com.stickman.fighting.ui.WoodenSkin.createUIFont(24);
+        BitmapFont fontSelect  = com.stickman.fighting.ui.WoodenSkin.createUIFont(21);
+        BitmapFont fontClose   = com.stickman.fighting.ui.WoodenSkin.createUIFont(28);
 
         sk.add("fontHeader",   fontHeader,  BitmapFont.class);
         sk.add("fontRow",      fontRow,     BitmapFont.class);
         sk.add("fontValue",    fontValue,   BitmapFont.class);
         sk.add("default-font", fontDefault, BitmapFont.class);
+        sk.add("fontSelect",   fontSelect,  BitmapFont.class);
+        sk.add("fontClose",    fontClose,   BitmapFont.class);
 
         // ── Màu chữ ───────────────────────────────────────────────────────────
         Color creamColor  = new Color(0.98f, 0.95f, 0.86f, 1f);
@@ -554,16 +734,18 @@ public class SettingScreen implements Screen {
         defaultBtnStyle.down = drawableFlat(woodDown,  border, 180, 48);
         sk.add("default", defaultBtnStyle, TextButton.TextButtonStyle.class);
 
-        // FIX: "close" — bo góc rounded để đồng bộ với MainMenu
-        Color redUp   = new Color(0.65f, 0.15f, 0.10f, 1f);
-        Color redOver = new Color(0.80f, 0.22f, 0.15f, 1f);
-        Color redDown = new Color(0.45f, 0.10f, 0.07f, 1f);
+        // Nút close chuyển sang tông gỗ để tránh lạc phong cách võ đường.
+        Color closeUp   = new Color(0.36f, 0.18f, 0.05f, 1f);
+        Color closeOver = new Color(0.49f, 0.27f, 0.10f, 1f);
+        Color closeDown = new Color(0.28f, 0.13f, 0.04f, 1f);
         TextButton.TextButtonStyle closeBtnStyle = new TextButton.TextButtonStyle();
-        closeBtnStyle.font      = fontValue;
-        closeBtnStyle.fontColor = creamColor;
-        closeBtnStyle.up   = drawableRounded(redUp,   border, 120, 44, 22);
-        closeBtnStyle.over = drawableRounded(redOver,  border, 120, 44, 22);
-        closeBtnStyle.down = drawableRounded(redDown,  border, 120, 44, 22);
+        closeBtnStyle.font      = fontClose;
+        closeBtnStyle.fontColor = new Color(1.00f, 0.95f, 0.75f, 1f);
+        closeBtnStyle.overFontColor = new Color(1.0f, 0.98f, 0.84f, 1f);
+        closeBtnStyle.downFontColor = new Color(0.95f, 0.88f, 0.66f, 1f);
+        closeBtnStyle.up   = drawableRounded(closeUp,   border, 108, 44, 10);
+        closeBtnStyle.over = drawableRounded(closeOver, border, 108, 44, 10);
+        closeBtnStyle.down = drawableRounded(closeDown, border, 108, 44, 10);
         sk.add("close", closeBtnStyle, TextButton.TextButtonStyle.class);
 
         // ── Slider Style "setting" ────────────────────────────────────────────
@@ -572,15 +754,11 @@ public class SettingScreen implements Screen {
         sk.add("default-horizontal", sliderStyle, Slider.SliderStyle.class);
 
         // ── SelectBox Style "setting" ─────────────────────────────────────────
-        SelectBox.SelectBoxStyle selectStyle = buildSelectBoxStyle(sk, fontRow, creamColor);
-        sk.add("setting", selectStyle, SelectBox.SelectBoxStyle.class);
-        sk.add("default", selectStyle, SelectBox.SelectBoxStyle.class);
-
-        // ── ScrollPane (container của SelectBox dropdown) ─────────────────────
-        ScrollPane.ScrollPaneStyle scrollStyle = new ScrollPane.ScrollPaneStyle();
-        scrollStyle.background = drawableFlat(
-            new Color(0.40f, 0.22f, 0.07f, 0.97f), border, 220, 120);
-        sk.add("default", scrollStyle, ScrollPane.ScrollPaneStyle.class);
+        SelectBox.SelectBoxStyle timeSelectStyle = buildSelectBoxStyle(fontSelect, creamColor, Math.round(TIME_SELECT_BOX_WIDTH));
+        SelectBox.SelectBoxStyle langSelectStyle = buildSelectBoxStyle(fontSelect, creamColor, Math.round(LANG_SELECT_BOX_WIDTH));
+        sk.add("setting-time", timeSelectStyle, SelectBox.SelectBoxStyle.class);
+        sk.add("setting-lang", langSelectStyle, SelectBox.SelectBoxStyle.class);
+        sk.add("default", langSelectStyle, SelectBox.SelectBoxStyle.class);
 
         return sk;
     }
@@ -590,22 +768,6 @@ public class SettingScreen implements Screen {
      * Track nền tối, knob tròn màu kem.
      */
     private Slider.SliderStyle buildSliderStyle() {
-        // Ưu tiên load từ file nếu có
-        if (Gdx.files.internal("slider_track.png").exists()
-            && Gdx.files.internal("slider_fill.png").exists()
-            && Gdx.files.internal("slider_knob.png").exists()) {
-
-            Slider.SliderStyle style = new Slider.SliderStyle();
-            style.background = new TextureRegionDrawable(new TextureRegion(
-                new Texture(Gdx.files.internal("slider_track.png"))));
-            style.knobBefore = new TextureRegionDrawable(new TextureRegion(
-                new Texture(Gdx.files.internal("slider_fill.png"))));
-            style.knob     = new TextureRegionDrawable(new TextureRegion(
-                new Texture(Gdx.files.internal("slider_knob.png"))));
-            style.knobOver = style.knob;
-            return style;
-        }
-
         // Track nền (nâu tối)
         Pixmap trackPm = new Pixmap(200, 8, Pixmap.Format.RGBA8888);
         trackPm.setColor(0.20f, 0.12f, 0.04f, 1f);
@@ -655,7 +817,7 @@ public class SettingScreen implements Screen {
 
     /** SelectBox dropdown style đồng bộ tông gỗ */
     private SelectBox.SelectBoxStyle buildSelectBoxStyle(
-        Skin sk, BitmapFont font, Color fontColor) {
+        BitmapFont font, Color fontColor, int boxWidth) {
 
         Color bgColor     = new Color(0.50f, 0.28f, 0.08f, 1f);
         Color bgOverColor = new Color(0.62f, 0.38f, 0.14f, 1f);
@@ -664,25 +826,28 @@ public class SettingScreen implements Screen {
         Color selectColor = new Color(0.78f, 0.59f, 0.20f, 0.60f); // highlight vàng đồng
 
         // Tạo textures, track để dispose
-        selectBgTex       = makeFlatTex(bgColor,     borderColor, 220, 56);
-        selectBgOverTex   = makeFlatTex(bgOverColor,  borderColor, 220, 56);
-        selectListBgTex   = makeFlatTex(listBgColor,  borderColor, 220, 52);
-        selectSelectionTex = makeFlatTex(selectColor, borderColor, 220, 52);
-        selectScrollBgTex = makeFlatTex(new Color(0.38f, 0.20f, 0.06f, 0.97f), borderColor, 220, 120);
+        Texture bgTex        = makeSelectBoxTex(bgColor, borderColor, boxWidth, Math.round(SELECT_BOX_HEIGHT), new Color(0.96f, 0.90f, 0.78f, 1f));
+        Texture bgOverTex    = makeSelectBoxTex(bgOverColor, borderColor, boxWidth, Math.round(SELECT_BOX_HEIGHT), new Color(1f, 0.95f, 0.82f, 1f));
+        Texture listBgTex    = makeFlatTex(listBgColor, borderColor, boxWidth, 46);
+        Texture selectionTex = makeFlatTex(selectColor, borderColor, boxWidth, 46);
+        Texture scrollBgTex  = makeFlatTex(new Color(0.38f, 0.20f, 0.06f, 0.97f), borderColor, boxWidth, 120);
+
+        trackSelectTexture(bgTex);
+        trackSelectTexture(bgOverTex);
+        trackSelectTexture(listBgTex);
+        trackSelectTexture(selectionTex);
+        trackSelectTexture(scrollBgTex);
 
         // List style (dropdown items)
         List.ListStyle listStyle = new List.ListStyle();
         listStyle.font                = font;
         listStyle.fontColorSelected   = new Color(1f, 1f, 0.85f, 1f);
         listStyle.fontColorUnselected = fontColor;
-        listStyle.selection           = new TextureRegionDrawable(new TextureRegion(selectSelectionTex));
-        listStyle.background          = new TextureRegionDrawable(new TextureRegion(selectListBgTex));
-        sk.add("default", listStyle, List.ListStyle.class);
-
+        listStyle.selection           = new TextureRegionDrawable(new TextureRegion(selectionTex));
+        listStyle.background          = new TextureRegionDrawable(new TextureRegion(listBgTex));
         // ScrollPane style
         ScrollPane.ScrollPaneStyle scrollStyle = new ScrollPane.ScrollPaneStyle();
-        scrollStyle.background = new TextureRegionDrawable(new TextureRegion(selectScrollBgTex));
-        sk.add("setting-scroll", scrollStyle, ScrollPane.ScrollPaneStyle.class);
+        scrollStyle.background = new TextureRegionDrawable(new TextureRegion(scrollBgTex));
 
         // SelectBox style
         SelectBox.SelectBoxStyle style = new SelectBox.SelectBoxStyle();
@@ -691,19 +856,44 @@ public class SettingScreen implements Screen {
         style.listStyle      = listStyle;
         style.scrollStyle    = scrollStyle;
 
-        if (Gdx.files.internal("dropdown_box.png").exists()) {
-            TextureRegionDrawable boxBg = new TextureRegionDrawable(
-                new TextureRegion(new Texture(Gdx.files.internal("dropdown_box.png"))));
-            style.background     = boxBg;
-            style.backgroundOver = boxBg;
-            style.backgroundOpen = boxBg;
-        } else {
-            style.background     = new TextureRegionDrawable(new TextureRegion(selectBgTex));
-            style.backgroundOver = new TextureRegionDrawable(new TextureRegion(selectBgOverTex));
-            style.backgroundOpen = new TextureRegionDrawable(new TextureRegion(selectBgOverTex));
-        }
+        style.background     = new TextureRegionDrawable(new TextureRegion(bgTex));
+        style.backgroundOver = new TextureRegionDrawable(new TextureRegion(bgOverTex));
+        style.backgroundOpen = new TextureRegionDrawable(new TextureRegion(bgOverTex));
 
         return style;
+    }
+
+    private void trackSelectTexture(Texture tex) {
+        selectTextures.add(tex);
+    }
+
+    private Texture makeSelectBoxTex(Color fill, Color border, int w, int h, Color arrowColor) {
+        Pixmap pm = new Pixmap(w, h, Pixmap.Format.RGBA8888);
+        pm.setColor(fill);
+        pm.fill();
+
+        pm.setColor(border);
+        pm.drawRectangle(0, 0, w, h);
+
+        int arrowCenterX = w - 24;
+        int arrowCenterY = h / 2 + 1;
+        int arrowHalfWidth = 6;
+        int arrowHeight = 4;
+        pm.setColor(arrowColor);
+        pm.fillTriangle(
+            arrowCenterX - arrowHalfWidth,
+            arrowCenterY - arrowHeight,
+            arrowCenterX + arrowHalfWidth,
+            arrowCenterY - arrowHeight,
+            arrowCenterX,
+            arrowCenterY + arrowHeight);
+
+        pm.setColor(border.r, border.g, border.b, 0.4f);
+        pm.drawLine(w - 44, 7, w - 44, h - 8);
+
+        Texture t = new Texture(pm);
+        pm.dispose();
+        return t;
     }
 
     // ── Texture Factories ─────────────────────────────────────────────────────
@@ -719,22 +909,22 @@ public class SettingScreen implements Screen {
         if (Gdx.files.internal("panel_wood.png").exists()) {
             panelTexture = new Texture(Gdx.files.internal("panel_wood.png"));
         } else {
-            panelTexture = createWoodTexture(560, 420,
+            panelTexture = createWoodTexture((int) PANEL_WIDTH, PANEL_TEXTURE_HEIGHT,
                 new Color(0.55f, 0.32f, 0.10f, 0.97f),
                 new Color(0.48f, 0.27f, 0.08f, 0.97f),
                 new Color(0.25f, 0.12f, 0.03f, 1f));
         }
 
-        panelHeaderTexture = createWoodTexture(560, 72,
+        panelHeaderTexture = createWoodTexture((int) PANEL_WIDTH, 72,
             new Color(0.42f, 0.22f, 0.06f, 1f),
             new Color(0.36f, 0.18f, 0.04f, 1f),
             new Color(0.20f, 0.09f, 0.02f, 1f));
 
-        rowTexture = createSolidRounded(560, 66,
+        rowTexture = createSolidRounded((int) PANEL_WIDTH, 62,
             new Color(0.60f, 0.36f, 0.12f, 0.85f),
             new Color(0.25f, 0.12f, 0.03f, 0f));
 
-        rowAltTexture = createSolidRounded(560, 66,
+        rowAltTexture = createSolidRounded((int) PANEL_WIDTH, 62,
             new Color(0.48f, 0.27f, 0.08f, 0.85f),
             new Color(0.25f, 0.12f, 0.03f, 0f));
     }
@@ -839,7 +1029,6 @@ public class SettingScreen implements Screen {
         if (speakerOnTexture   != null) speakerOnTexture.dispose();
         if (speakerOffTexture  != null) speakerOffTexture.dispose();
         if (dividerTexture     != null) dividerTexture.dispose();
-
         // Slider textures
         if (sliderTrackTex    != null) sliderTrackTex.dispose();
         if (sliderFillTex     != null) sliderFillTex.dispose();
@@ -847,10 +1036,9 @@ public class SettingScreen implements Screen {
         if (sliderKnobOverTex != null) sliderKnobOverTex.dispose();
 
         // SelectBox textures
-        if (selectBgTex        != null) selectBgTex.dispose();
-        if (selectBgOverTex    != null) selectBgOverTex.dispose();
-        if (selectListBgTex    != null) selectListBgTex.dispose();
-        if (selectSelectionTex != null) selectSelectionTex.dispose();
-        if (selectScrollBgTex  != null) selectScrollBgTex.dispose();
+        for (Texture tex : selectTextures) {
+            if (tex != null) tex.dispose();
+        }
+        selectTextures.clear();
     }
 }

@@ -59,6 +59,18 @@ run {
   if (os.contains('mac')) jvmArgs += "-XstartOnFirstThread"
 }
 
+tasks.register("runUiQa", JavaExec) {
+  group = "application"
+  description = "Run desktop app in automated UI QA mode for SettingScreen."
+  dependsOn classes
+  classpath = sourceSets.main.runtimeClasspath
+  mainClass = application.mainClass
+  workingDir = rootProject.file('assets').path
+  jvmArgs "--enable-native-access=ALL-UNNAMED"
+  if (os.contains('mac')) jvmArgs "-XstartOnFirstThread"
+  args "--qa-ui", "--qa-open-settings", "--qa-layout-check", "--qa-capture", "--qa-exit-after-shot"
+}
+
 jar {
 // sets the name of the .jar file this produces to the name of the game or app, with the version after.
   archiveFileName.set("${appName}-${projectVersion}.jar")
