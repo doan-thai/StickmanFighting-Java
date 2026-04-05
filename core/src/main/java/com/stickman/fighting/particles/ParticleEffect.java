@@ -3,7 +3,6 @@ package com.stickman.fighting.particles;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
-import com.badlogic.gdx.math.Vector2;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,18 +17,18 @@ public class ParticleEffect {
 
     // ── Loại hiệu ứng ────────────────────────────────────────────────────────
     public enum EffectType {
-        HIT_SPARK,      // Tia lửa nhỏ tóe ra — màu vàng/cam
-        HIT_IMPACT,     // Vòng shockwave mở rộng — trắng/vàng
-        BLOOD_BURST,    // Chấm đỏ cartoon bắn ra
-        KO_EXPLOSION,   // Nổ lớn nhiều màu khi KO
-        DUST_LAND,      // Bụi xám khi đáp đất
-        JUMP_PUFF       // Khói trắng nhỏ khi nhảy
+        HIT_SPARK, // Tia lửa nhỏ tóe ra — màu vàng/cam
+        HIT_IMPACT, // Vòng shockwave mở rộng — trắng/vàng
+        BLOOD_BURST, // Chấm đỏ cartoon bắn ra
+        KO_EXPLOSION, // Nổ lớn nhiều màu khi KO
+        DUST_LAND, // Bụi xám khi đáp đất
+        JUMP_PUFF // Khói trắng nhỏ khi nhảy
     }
 
     // ── Fields ────────────────────────────────────────────────────────────────
     private final List<Particle> particles = new ArrayList<>(32);
     private EffectType type;
-    private boolean    finished = true;
+    private boolean finished = true;
 
     // Shockwave ring (chỉ dùng cho HIT_IMPACT)
     private float ringRadius, ringMaxRadius, ringAlpha;
@@ -37,36 +36,38 @@ public class ParticleEffect {
 
     // ── Khởi tạo effect tại vị trí (x, y) ───────────────────────────────────
     public void start(EffectType type, float x, float y) {
-        this.type     = type;
+        this.type = type;
         this.finished = false;
-        this.hasRing  = false;
+        this.hasRing = false;
         particles.clear();
 
         switch (type) {
-            case HIT_SPARK    -> spawnHitSpark(x, y);
-            case HIT_IMPACT   -> spawnHitImpact(x, y);
-            case BLOOD_BURST  -> spawnBloodBurst(x, y);
+            case HIT_SPARK -> spawnHitSpark(x, y);
+            case HIT_IMPACT -> spawnHitImpact(x, y);
+            case BLOOD_BURST -> spawnBloodBurst(x, y);
             case KO_EXPLOSION -> spawnKOExplosion(x, y);
-            case DUST_LAND    -> spawnDustLand(x, y);
-            case JUMP_PUFF    -> spawnJumpPuff(x, y);
+            case DUST_LAND -> spawnDustLand(x, y);
+            case JUMP_PUFF -> spawnJumpPuff(x, y);
         }
     }
 
     // ── Update mỗi frame ──────────────────────────────────────────────────────
     public void update(float delta) {
-        if (finished) return;
+        if (finished)
+            return;
 
         int aliveCount = 0;
 
         for (Particle p : particles) {
-            if (!p.active) continue;
+            if (!p.active)
+                continue;
 
             // Vật lý
             p.velocity.y += p.gravity * delta;
-            p.velocity.scl(p.drag);          // Áp dụng drag
+            p.velocity.scl(p.drag); // Áp dụng drag
             p.position.x += p.velocity.x * delta;
             p.position.y += p.velocity.y * delta;
-            p.rotation   += p.rotationSpeed * delta;
+            p.rotation += p.rotationSpeed * delta;
 
             // Giảm thời gian sống
             p.life -= delta;
@@ -80,12 +81,16 @@ public class ParticleEffect {
         // Cập nhật ring (HIT_IMPACT)
         if (hasRing) {
             ringRadius += 280f * delta;
-            ringAlpha  -= delta * 3.0f;
-            if (ringAlpha <= 0f) hasRing = false;
-            else aliveCount++;
+            ringAlpha -= delta * 3.0f;
+            if (ringAlpha <= 0f || ringRadius >= ringMaxRadius) {
+                hasRing = false;
+            } else {
+                aliveCount++;
+            }
         }
 
-        if (aliveCount == 0) finished = true;
+        if (aliveCount == 0)
+            finished = true;
     }
 
     // ── Render ────────────────────────────────────────────────────────────────
@@ -96,17 +101,21 @@ public class ParticleEffect {
      * method này tự quản lý begin/end cho từng ShapeType.
      */
     public void render(ShapeRenderer sr) {
-        if (finished) return;
+        if (finished)
+            return;
 
         // ── Pass Filled: DOT ──────────────────────────────────────────────────
         sr.begin(ShapeRenderer.ShapeType.Filled);
         for (Particle p : particles) {
-            if (!p.active) continue;
-            if (p.shape != Particle.Shape.DOT) continue;
+            if (!p.active)
+                continue;
+            if (p.shape != Particle.Shape.DOT)
+                continue;
 
-            float ratio   = p.getLifeRatio();
+            float ratio = p.getLifeRatio();
             float curSize = lerp(p.endSize, p.size, ratio);
-            if (curSize < 0.5f) continue;
+            if (curSize < 0.5f)
+                continue;
 
             Color c = lerpColor(p.endColor, p.color, ratio);
             sr.setColor(c);
@@ -123,12 +132,15 @@ public class ParticleEffect {
         // ── Pass Line: LINE, STAR ─────────────────────────────────────────────
         sr.begin(ShapeRenderer.ShapeType.Line);
         for (Particle p : particles) {
-            if (!p.active) continue;
-            if (p.shape == Particle.Shape.DOT) continue;
+            if (!p.active)
+                continue;
+            if (p.shape == Particle.Shape.DOT)
+                continue;
 
-            float ratio   = p.getLifeRatio();
+            float ratio = p.getLifeRatio();
             float curSize = lerp(p.endSize, p.size, ratio);
-            if (curSize < 0.5f) continue;
+            if (curSize < 0.5f)
+                continue;
 
             Color c = lerpColor(p.endColor, p.color, ratio);
             sr.setColor(c);
@@ -140,7 +152,7 @@ public class ParticleEffect {
                 float dx = MathUtils.cos(rad) * curSize;
                 float dy = MathUtils.sin(rad) * curSize;
                 sr.line(p.position.x - dx, p.position.y - dy,
-                    p.position.x + dx, p.position.y + dy);
+                        p.position.x + dx, p.position.y + dy);
             } else if (p.shape == Particle.Shape.STAR) {
                 // Vẽ dấu × (2 đường chéo)
                 float dx1 = MathUtils.cos(rad) * curSize;
@@ -148,9 +160,9 @@ public class ParticleEffect {
                 float dx2 = MathUtils.cos(rad + MathUtils.PI / 2f) * curSize;
                 float dy2 = MathUtils.sin(rad + MathUtils.PI / 2f) * curSize;
                 sr.line(p.position.x - dx1, p.position.y - dy1,
-                    p.position.x + dx1, p.position.y + dy1);
+                        p.position.x + dx1, p.position.y + dy1);
                 sr.line(p.position.x - dx2, p.position.y - dy2,
-                    p.position.x + dx2, p.position.y + dy2);
+                        p.position.x + dx2, p.position.y + dy2);
             }
         }
 
@@ -166,8 +178,14 @@ public class ParticleEffect {
 
     // Lưu tọa độ ring để render
     private float ringCx, ringCy;
-    private float getRingX() { return ringCx; }
-    private float getRingY() { return ringCy; }
+
+    private float getRingX() {
+        return ringCx;
+    }
+
+    private float getRingY() {
+        return ringCy;
+    }
 
     // ── Spawn Definitions ─────────────────────────────────────────────────────
 
@@ -180,29 +198,28 @@ public class ParticleEffect {
         for (int i = 0; i < count; i++) {
             Particle p = newParticle();
             p.position.set(x, y);
-            p.shape    = Particle.Shape.LINE;
+            p.shape = Particle.Shape.LINE;
 
             // Hướng ngẫu nhiên, tập trung theo chiều ngang
             float angle = MathUtils.random(150f, 390f); // Chủ yếu sang ngang
             float speed = MathUtils.random(120f, 380f);
             p.velocity.set(
-                MathUtils.cosDeg(angle) * speed,
-                MathUtils.sinDeg(angle) * speed
-            );
-            p.rotation      = angle;
+                    MathUtils.cosDeg(angle) * speed,
+                    MathUtils.sinDeg(angle) * speed);
+            p.rotation = angle;
             p.rotationSpeed = MathUtils.random(-120f, 120f);
 
-            p.life    = p.maxLife = MathUtils.random(0.10f, 0.22f);
-            p.size    = MathUtils.random(4f, 10f);
+            p.life = p.maxLife = MathUtils.random(0.10f, 0.22f);
+            p.size = MathUtils.random(4f, 10f);
             p.endSize = 0f;
 
             p.gravity = -600f; // Rơi nhanh
-            p.drag    = 0.92f;
+            p.drag = 0.92f;
 
             // Màu: vàng sáng → cam
             p.color.set(1f, MathUtils.random(0.75f, 1.0f), 0f, 1f);
             p.endColor.set(1f, 0.3f, 0f, 0f);
-            p.active  = true;
+            p.active = true;
         }
     }
 
@@ -211,12 +228,12 @@ public class ParticleEffect {
      */
     private void spawnHitImpact(float x, float y) {
         // Vòng ring
-        hasRing       = true;
-        ringCx        = x;
-        ringCy        = y;
-        ringRadius    = 8f;
+        hasRing = true;
+        ringCx = x;
+        ringCy = y;
+        ringRadius = 8f;
         ringMaxRadius = 80f;
-        ringAlpha     = 1.0f;
+        ringAlpha = 1.0f;
 
         // Vài chấm sáng bắn ra
         int count = MathUtils.random(4, 7);
@@ -228,14 +245,13 @@ public class ParticleEffect {
             float angle = MathUtils.random(360f);
             float speed = MathUtils.random(60f, 180f);
             p.velocity.set(
-                MathUtils.cosDeg(angle) * speed,
-                MathUtils.sinDeg(angle) * speed
-            );
+                    MathUtils.cosDeg(angle) * speed,
+                    MathUtils.sinDeg(angle) * speed);
 
-            p.life  = p.maxLife = MathUtils.random(0.15f, 0.30f);
-            p.size  = MathUtils.random(3f, 7f);
+            p.life = p.maxLife = MathUtils.random(0.15f, 0.30f);
+            p.size = MathUtils.random(3f, 7f);
             p.endSize = 0f;
-            p.drag  = 0.88f;
+            p.drag = 0.88f;
 
             p.color.set(1f, 1f, 0.8f, 1f);
             p.endColor.set(1f, 0.8f, 0.2f, 0f);
@@ -251,22 +267,21 @@ public class ParticleEffect {
         for (int i = 0; i < count; i++) {
             Particle p = newParticle();
             p.position.set(x + MathUtils.random(-5f, 5f),
-                y + MathUtils.random(-5f, 5f));
+                    y + MathUtils.random(-5f, 5f));
             p.shape = Particle.Shape.DOT;
 
             float angle = MathUtils.random(360f);
             float speed = MathUtils.random(80f, 250f);
             p.velocity.set(
-                MathUtils.cosDeg(angle) * speed,
-                MathUtils.sinDeg(angle) * speed
-            );
+                    MathUtils.cosDeg(angle) * speed,
+                    MathUtils.sinDeg(angle) * speed);
 
-            p.life    = p.maxLife = MathUtils.random(0.20f, 0.45f);
-            p.size    = MathUtils.random(3f, 8f);
+            p.life = p.maxLife = MathUtils.random(0.20f, 0.45f);
+            p.size = MathUtils.random(3f, 8f);
             p.endSize = p.size * 0.3f; // Không biến mất hoàn toàn
 
             p.gravity = -400f;
-            p.drag    = 0.90f;
+            p.drag = 0.90f;
 
             // Đỏ tươi → đỏ tối
             p.color.set(1f, 0.05f, 0.05f, 1f);
@@ -280,42 +295,41 @@ public class ParticleEffect {
      */
     private void spawnKOExplosion(float x, float y) {
         // Ring lớn
-        hasRing       = true;
-        ringCx        = x;
-        ringCy        = y;
-        ringRadius    = 15f;
+        hasRing = true;
+        ringCx = x;
+        ringCy = y;
+        ringRadius = 15f;
         ringMaxRadius = 160f;
-        ringAlpha     = 1.2f;
+        ringAlpha = 1.2f;
 
         // Nhiều STAR particles
         int count = MathUtils.random(20, 28);
         Color[] palette = {
-            new Color(1f, 1f, 0.2f, 1f),   // Vàng
-            new Color(1f, 0.5f, 0f, 1f),    // Cam
-            new Color(1f, 1f, 1f, 1f),      // Trắng
-            new Color(1f, 0.2f, 0.1f, 1f),  // Đỏ
+                new Color(1f, 1f, 0.2f, 1f), // Vàng
+                new Color(1f, 0.5f, 0f, 1f), // Cam
+                new Color(1f, 1f, 1f, 1f), // Trắng
+                new Color(1f, 0.2f, 0.1f, 1f), // Đỏ
         };
 
         for (int i = 0; i < count; i++) {
             Particle p = newParticle();
             p.position.set(x + MathUtils.random(-10f, 10f),
-                y + MathUtils.random(-10f, 10f));
+                    y + MathUtils.random(-10f, 10f));
             p.shape = (i % 3 == 0) ? Particle.Shape.STAR : Particle.Shape.DOT;
 
             float angle = MathUtils.random(360f);
             float speed = MathUtils.random(150f, 500f);
             p.velocity.set(
-                MathUtils.cosDeg(angle) * speed,
-                MathUtils.sinDeg(angle) * speed
-            );
-            p.rotation      = angle;
+                    MathUtils.cosDeg(angle) * speed,
+                    MathUtils.sinDeg(angle) * speed);
+            p.rotation = angle;
             p.rotationSpeed = MathUtils.random(-200f, 200f);
 
-            p.life    = p.maxLife = MathUtils.random(0.3f, 0.7f);
-            p.size    = MathUtils.random(5f, 16f);
+            p.life = p.maxLife = MathUtils.random(0.3f, 0.7f);
+            p.size = MathUtils.random(5f, 16f);
             p.endSize = 0f;
             p.gravity = -300f;
-            p.drag    = 0.94f;
+            p.drag = 0.94f;
 
             Color chosenColor = palette[MathUtils.random(palette.length - 1)];
             p.color.set(chosenColor);
@@ -335,14 +349,14 @@ public class ParticleEffect {
             p.shape = Particle.Shape.DOT;
 
             // Bụi lan ngang, ít bay lên
-            float dir   = (MathUtils.random() > 0.5f) ? 1f : -1f;
+            float dir = (MathUtils.random() > 0.5f) ? 1f : -1f;
             float speed = MathUtils.random(40f, 130f);
             p.velocity.set(dir * speed, MathUtils.random(20f, 80f));
 
-            p.life    = p.maxLife = MathUtils.random(0.25f, 0.50f);
-            p.size    = MathUtils.random(6f, 14f);
+            p.life = p.maxLife = MathUtils.random(0.25f, 0.50f);
+            p.size = MathUtils.random(6f, 14f);
             p.endSize = p.size * 1.5f; // Bụi phình to rồi mờ
-            p.drag    = 0.85f;
+            p.drag = 0.85f;
 
             float gray = MathUtils.random(0.55f, 0.75f);
             p.color.set(gray, gray, gray, 0.7f);
@@ -362,10 +376,10 @@ public class ParticleEffect {
             p.shape = Particle.Shape.DOT;
 
             p.velocity.set(MathUtils.random(-60f, 60f), MathUtils.random(-30f, 50f));
-            p.life    = p.maxLife = MathUtils.random(0.15f, 0.30f);
-            p.size    = MathUtils.random(4f, 10f);
+            p.life = p.maxLife = MathUtils.random(0.15f, 0.30f);
+            p.size = MathUtils.random(4f, 10f);
             p.endSize = p.size * 2f;
-            p.drag    = 0.80f;
+            p.drag = 0.80f;
 
             p.color.set(0.9f, 0.9f, 0.9f, 0.6f);
             p.endColor.set(0.9f, 0.9f, 0.9f, 0f);
@@ -388,13 +402,17 @@ public class ParticleEffect {
 
     private Color lerpColor(Color a, Color b, float t) {
         return new Color(
-            lerp(a.r, b.r, t),
-            lerp(a.g, b.g, t),
-            lerp(a.b, b.b, t),
-            lerp(a.a, b.a, t)
-        );
+                lerp(a.r, b.r, t),
+                lerp(a.g, b.g, t),
+                lerp(a.b, b.b, t),
+                lerp(a.a, b.a, t));
     }
 
-    public boolean isFinished() { return finished; }
-    public EffectType getType() { return type; }
+    public boolean isFinished() {
+        return finished;
+    }
+
+    public EffectType getType() {
+        return type;
+    }
 }

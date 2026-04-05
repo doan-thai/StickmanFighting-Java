@@ -38,39 +38,39 @@ public class PlayScreen implements Screen {
 
     // ── Dependencies ──────────────────────────────────────────────────────────
     private final MyFightingGame game;
-    private final boolean        twoPlayerMode;
+    private final boolean twoPlayerMode;
 
     // ── Render ────────────────────────────────────────────────────────────────
     private ShapeRenderer shapeRenderer;
-    private BitmapFont    hudFont;
-    private BitmapFont    timerFont;
-    private GlyphLayout   glyphLayout;
-    private Texture       bgTexture;
+    private BitmapFont hudFont;
+    private BitmapFont timerFont;
+    private GlyphLayout glyphLayout;
+    private Texture bgTexture;
 
     // ── Scene2D ───────────────────────────────────────────────────────────────
     private Stage stage;
-    private Skin  skin;
+    private Skin skin;
 
     // HUD widgets
     private ProgressBar hpBarP1;
     private ProgressBar hpBarP2;
-    private Label       timerLabel;
-    private Label       scoreLabel;
-    private float       displayedHpP1 = 1f;
-    private float       displayedHpP2 = 1f;
+    private Label timerLabel;
+    private Label scoreLabel;
+    private float displayedHpP1 = 1f;
+    private float displayedHpP2 = 1f;
 
     // Pause overlay
-    private Table   pauseOverlay;
+    private Table pauseOverlay;
     private boolean paused = false;
 
     // ── Entities ──────────────────────────────────────────────────────────────
     private PlayerFighter player1;
-    private Fighter       player2;
+    private Fighter player2;
 
     // ── Game State ────────────────────────────────────────────────────────────
     private float roundTimeLeft;
-    private int   scoreP1 = 0;
-    private int   scoreP2 = 0;
+    private int scoreP1 = 0;
+    private int scoreP2 = 0;
 
     private float koFreezeTimer = -1f;
     private static final float KO_FREEZE_DURATION = 1.8f;
@@ -93,7 +93,7 @@ public class PlayScreen implements Screen {
 
     // ── Constructor ───────────────────────────────────────────────────────────
     public PlayScreen(MyFightingGame game, boolean twoPlayerMode) {
-        this.game          = game;
+        this.game = game;
         this.twoPlayerMode = twoPlayerMode;
     }
 
@@ -102,15 +102,15 @@ public class PlayScreen implements Screen {
     @Override
     public void show() {
         shapeRenderer = new ShapeRenderer();
-        hudFont       = new BitmapFont();
+        hudFont = new BitmapFont();
         hudFont.getData().setScale(1.6f);
-        timerFont     = new BitmapFont();
+        timerFont = new BitmapFont();
         timerFont.getData().setScale(2.8f);
-        glyphLayout   = new GlyphLayout();
-        bgTexture     = createArenaTexture();
+        glyphLayout = new GlyphLayout();
+        bgTexture = createArenaTexture();
 
         stage = new Stage(new FitViewport(Constants.SCREEN_WIDTH, Constants.SCREEN_HEIGHT));
-        skin  = WoodenSkin.create();
+        skin = WoodenSkin.create();
 
         buildHUD();
         buildPauseOverlay();
@@ -155,9 +155,18 @@ public class PlayScreen implements Screen {
         stage.getViewport().update(w, h, true);
     }
 
-    @Override public void pause()  { paused = true; }
-    @Override public void resume() {}
-    @Override public void hide()   {}
+    @Override
+    public void pause() {
+        paused = true;
+    }
+
+    @Override
+    public void resume() {
+    }
+
+    @Override
+    public void hide() {
+    }
 
     @Override
     public void dispose() {
@@ -166,16 +175,26 @@ public class PlayScreen implements Screen {
         timerFont.dispose();
         stage.dispose();
         skin.dispose();
-        if (bgTexture       != null) bgTexture.dispose();
-        if (hpBgTexture     != null) hpBgTexture.dispose();
-        if (hpBarP1Texture  != null) hpBarP1Texture.dispose();
-        if (hpBarP2Texture  != null) hpBarP2Texture.dispose();
-        if (hpFrameLeftTexture  != null) hpFrameLeftTexture.dispose();
-        if (hpFrameRightTexture != null) hpFrameRightTexture.dispose();
-        if (hudBadgeTexture     != null) hudBadgeTexture.dispose();
-        if (pausePanelTexture   != null) pausePanelTexture.dispose();
-        if (pauseIconTexture    != null) pauseIconTexture.dispose();
-        if (dimOverlayTexture   != null) dimOverlayTexture.dispose();
+        if (bgTexture != null)
+            bgTexture.dispose();
+        if (hpBgTexture != null)
+            hpBgTexture.dispose();
+        if (hpBarP1Texture != null)
+            hpBarP1Texture.dispose();
+        if (hpBarP2Texture != null)
+            hpBarP2Texture.dispose();
+        if (hpFrameLeftTexture != null)
+            hpFrameLeftTexture.dispose();
+        if (hpFrameRightTexture != null)
+            hpFrameRightTexture.dispose();
+        if (hudBadgeTexture != null)
+            hudBadgeTexture.dispose();
+        if (pausePanelTexture != null)
+            pausePanelTexture.dispose();
+        if (pauseIconTexture != null)
+            pauseIconTexture.dispose();
+        if (dimOverlayTexture != null)
+            dimOverlayTexture.dispose();
         ParticleSystem.getInstance().clear();
     }
 
@@ -191,8 +210,10 @@ public class PlayScreen implements Screen {
 
         // Xoay mặt về phía đối thủ
         boolean p1FaceRight = player2.getCenterX() >= player1.getCenterX();
-        if (!player1.isAttacking()) player1.setFacingRight(p1FaceRight);
-        if (!player2.isAttacking()) player2.setFacingRight(!p1FaceRight);
+        if (!player1.isAttacking())
+            player1.setFacingRight(p1FaceRight);
+        if (!player2.isAttacking())
+            player2.setFacingRight(!p1FaceRight);
 
         // Va chạm thân
         resolveBodyCollision();
@@ -222,7 +243,8 @@ public class PlayScreen implements Screen {
 
         // Timer
         roundTimeLeft -= delta;
-        if (roundTimeLeft < 0f) roundTimeLeft = 0f;
+        if (roundTimeLeft < 0f)
+            roundTimeLeft = 0f;
 
         // Cập nhật HUD
         updateHUD();
@@ -235,10 +257,11 @@ public class PlayScreen implements Screen {
     }
 
     private void resolveBodyCollision() {
-        if (!player1.getBounds().overlaps(player2.getBounds())) return;
+        if (!player1.getBounds().overlaps(player2.getBounds()))
+            return;
 
-        float p1Cx   = player1.getCenterX();
-        float p2Cx   = player2.getCenterX();
+        float p1Cx = player1.getCenterX();
+        float p2Cx = player2.getCenterX();
         float overlap = (Fighter.WIDTH - Math.abs(p1Cx - p2Cx)) / 2f + 1f;
 
         if (p1Cx < p2Cx) {
@@ -295,12 +318,12 @@ public class PlayScreen implements Screen {
             loser = player2;
         }
         ParticleSystem.getInstance().emitKO(
-            loser.getCenterX(), loser.getCenterY() + 20f);
+                loser.getCenterX(), loser.getCenterY() + 20f);
     }
 
     private void goToGameOver() {
         game.setScreen(new GameOverScreen(
-            game, winnerIndex, scoreP1, scoreP2, twoPlayerMode));
+                game, winnerIndex, scoreP1, scoreP2, twoPlayerMode));
     }
 
     // ── Draw ──────────────────────────────────────────────────────────────────
@@ -313,7 +336,7 @@ public class PlayScreen implements Screen {
         game.batch.setProjectionMatrix(stage.getCamera().combined);
         game.batch.begin();
         game.batch.draw(bgTexture, 0, 0,
-            Constants.SCREEN_WIDTH, Constants.SCREEN_HEIGHT);
+                Constants.SCREEN_WIDTH, Constants.SCREEN_HEIGHT);
         game.batch.end();
 
         // 2. Fighters + Particles
@@ -355,8 +378,8 @@ public class PlayScreen implements Screen {
         timerFont.setColor(Color.ORANGE);
         glyphLayout.setText(timerFont, "K.O.!");
         timerFont.draw(game.batch, "K.O.!",
-            (Constants.SCREEN_WIDTH  - glyphLayout.width)  / 2f,
-            Constants.SCREEN_HEIGHT * 0.68f);
+                (Constants.SCREEN_WIDTH - glyphLayout.width) / 2f,
+                Constants.SCREEN_HEIGHT * 0.68f);
         game.batch.end();
     }
 
@@ -369,12 +392,12 @@ public class PlayScreen implements Screen {
 
         // HP bars
         ProgressBar.ProgressBarStyle p1Style = makeHpBarStyle(
-            new Color(0.2f, 0.6f, 1f, 1f), true);
+                new Color(0.2f, 0.6f, 1f, 1f), true);
         hpBarP1 = new ProgressBar(0f, 1f, 0.01f, false, p1Style);
         hpBarP1.setValue(1f);
 
         ProgressBar.ProgressBarStyle p2Style = makeHpBarStyle(
-            new Color(1f, 0.25f, 0.25f, 1f), false);
+                new Color(1f, 0.25f, 0.25f, 1f), false);
         hpBarP2 = new ProgressBar(0f, 1f, 0.01f, false, p2Style);
         hpBarP2.setValue(1f);
 
@@ -383,7 +406,8 @@ public class PlayScreen implements Screen {
         skin.add("hud-score-font", scoreFont, BitmapFont.class);
         skin.add("hud-timer-font", timerFontUi, BitmapFont.class);
         skin.add("hudScore", new Label.LabelStyle(scoreFont, new Color(1f, 0.94f, 0.78f, 1f)), Label.LabelStyle.class);
-        skin.add("hudTimer", new Label.LabelStyle(timerFontUi, new Color(1f, 0.88f, 0.50f, 1f)), Label.LabelStyle.class);
+        skin.add("hudTimer", new Label.LabelStyle(timerFontUi, new Color(1f, 0.88f, 0.50f, 1f)),
+                Label.LabelStyle.class);
 
         // Labels P1 / P2
         Label labelP1 = new Label("P1", skin);
@@ -416,7 +440,9 @@ public class PlayScreen implements Screen {
         btnPause.setOrigin(Align.center);
         btnPause.addListener(new ChangeListener() {
             @Override
-            public void changed(ChangeEvent e, Actor a) { togglePause(); }
+            public void changed(ChangeEvent e, Actor a) {
+                togglePause();
+            }
         });
 
         // Hàng 1: chỉ nút Pause ở góc trên bên phải
@@ -487,13 +513,15 @@ public class PlayScreen implements Screen {
         Label pauseTitle = new Label("TẠM DỪNG", skin, "title");
         pauseTitle.setAlignment(Align.center);
 
-        TextButton btnResume  = new TextButton("TIẾP TỤC", skin, "resume");
+        TextButton btnResume = new TextButton("TIẾP TỤC", skin, "resume");
         TextButton btnRestart = new TextButton("CHƠI LẠI", skin, "restart");
-        TextButton btnQuit    = new TextButton("THOÁT",    skin, "quit");
+        TextButton btnQuit = new TextButton("THOÁT", skin, "quit");
 
         btnResume.addListener(new ChangeListener() {
             @Override
-            public void changed(ChangeEvent e, Actor a) { togglePause(); }
+            public void changed(ChangeEvent e, Actor a) {
+                togglePause();
+            }
         });
         btnRestart.addListener(new ChangeListener() {
             @Override
@@ -539,56 +567,54 @@ public class PlayScreen implements Screen {
             pauseOverlay.setScale(0.9f);
             pauseOverlay.getColor().a = 0f;
             pauseOverlay.addAction(Actions.parallel(
-                Actions.fadeIn(0.24f),
-                Actions.scaleTo(1f, 1f, 0.24f)
-            ));
+                    Actions.fadeIn(0.24f),
+                    Actions.scaleTo(1f, 1f, 0.24f)));
         } else {
             if (dim != null) {
                 dim.addAction(Actions.sequence(
-                    Actions.fadeOut(0.2f),
-                    Actions.visible(false)
-                ));
+                        Actions.fadeOut(0.2f),
+                        Actions.visible(false)));
             }
             pauseOverlay.addAction(Actions.sequence(
-                Actions.parallel(
-                    Actions.fadeOut(0.2f),
-                    Actions.scaleTo(0.92f, 0.92f, 0.2f)
-                ),
-                Actions.visible(false)
-            ));
+                    Actions.parallel(
+                            Actions.fadeOut(0.2f),
+                            Actions.scaleTo(0.92f, 0.92f, 0.2f)),
+                    Actions.visible(false)));
         }
 
         SoundManager sm = SoundManager.getInstance();
-        if (paused) sm.pauseMusic();
-        else        sm.resumeMusic();
+        if (paused)
+            sm.pauseMusic();
+        else
+            sm.resumeMusic();
     }
 
     // ── Spawn ─────────────────────────────────────────────────────────────────
 
     private void spawnFighters() {
-        float p1X    = Constants.SCREEN_WIDTH * 0.25f;
-        float p2X    = Constants.SCREEN_WIDTH * 0.65f;
+        float p1X = Constants.SCREEN_WIDTH * 0.25f;
+        float p2X = Constants.SCREEN_WIDTH * 0.65f;
         float startY = Constants.GROUND_Y;
         float hpScale = GameSettings.getInstance().getHpScale();
 
         player1 = new PlayerFighter(
-            p1X, startY,
-            PlayerFighter.PlayerIndex.PLAYER_ONE,
-            new Color(0.2f, 0.6f, 1f, 1f));
+                p1X, startY,
+                PlayerFighter.PlayerIndex.PLAYER_ONE,
+                new Color(0.2f, 0.6f, 1f, 1f));
         player1.setMaxHpScale(hpScale);
         player1.setFacingRight(true);
 
         if (twoPlayerMode) {
             player2 = new PlayerFighter(
-                p2X, startY,
-                PlayerFighter.PlayerIndex.PLAYER_TWO,
-                new Color(1f, 0.25f, 0.25f, 1f));
+                    p2X, startY,
+                    PlayerFighter.PlayerIndex.PLAYER_TWO,
+                    new Color(1f, 0.25f, 0.25f, 1f));
         } else {
             player2 = new BotFighter(
-                p2X, startY,
-                new Color(1f, 0.25f, 0.25f, 1f),
-                player1,
-                BotFighter.Difficulty.NORMAL);
+                    p2X, startY,
+                    new Color(1f, 0.25f, 0.25f, 1f),
+                    player1,
+                    BotFighter.Difficulty.NORMAL);
         }
         player2.setMaxHpScale(hpScale);
         player2.setFacingRight(false);
@@ -597,12 +623,15 @@ public class PlayScreen implements Screen {
     // ── Texture Helpers ───────────────────────────────────────────────────────
 
     private ProgressBar.ProgressBarStyle makeHpBarStyle(Color barColor, boolean isP1) {
-        if (hpBgTexture == null) hpBgTexture = loadOrCreate("hp_frame_left.png", 1, 1,
-            new Color(0.18f, 0.18f, 0.18f, 0.9f));
-        if (hpFrameLeftTexture == null) hpFrameLeftTexture = loadOrCreate("hp_frame_left.png", 300, 22,
-            new Color(0.18f, 0.18f, 0.18f, 0.9f));
-        if (hpFrameRightTexture == null) hpFrameRightTexture = loadOrCreate("hp_frame_right.png", 300, 22,
-            new Color(0.18f, 0.18f, 0.18f, 0.9f));
+        if (hpBgTexture == null)
+            hpBgTexture = loadOrCreate("hp_frame_left.png", 1, 1,
+                    new Color(0.18f, 0.18f, 0.18f, 0.9f));
+        if (hpFrameLeftTexture == null)
+            hpFrameLeftTexture = loadOrCreate("hp_frame_left.png", 300, 22,
+                    new Color(0.18f, 0.18f, 0.18f, 0.9f));
+        if (hpFrameRightTexture == null)
+            hpFrameRightTexture = loadOrCreate("hp_frame_right.png", 300, 22,
+                    new Color(0.18f, 0.18f, 0.18f, 0.9f));
 
         Texture barTex;
         if (isP1) {
@@ -615,7 +644,7 @@ public class PlayScreen implements Screen {
 
         ProgressBar.ProgressBarStyle style = new ProgressBar.ProgressBarStyle();
         style.background = new TextureRegionDrawable(new TextureRegion(
-            isP1 ? hpFrameLeftTexture : hpFrameRightTexture));
+                isP1 ? hpFrameLeftTexture : hpFrameRightTexture));
         style.knobBefore = new TextureRegionDrawable(new TextureRegion(barTex));
         return style;
     }
@@ -671,7 +700,7 @@ public class PlayScreen implements Screen {
 
         // Sàn gỗ
         pm.setColor(0.52f, 0.33f, 0.12f, 1f);
-        pm.fillRectangle(0, 0, w, (int)(Constants.GROUND_Y + 10));
+        pm.fillRectangle(0, 0, w, (int) (Constants.GROUND_Y + 10));
 
         // Vân sàn
         pm.setColor(0.42f, 0.26f, 0.09f, 1f);
@@ -686,21 +715,6 @@ public class PlayScreen implements Screen {
         Texture tex = new Texture(pm);
         pm.dispose();
         return tex;
-    }
-
-    private Button buildIconButton(String iconFile, String fallbackText, String fallbackStyle) {
-        if (Gdx.files.internal(iconFile).exists()) {
-            Texture t = new Texture(Gdx.files.internal(iconFile));
-            if ("pause_icon.png".equals(iconFile) || "icon_pause.png".equals(iconFile)) {
-                pauseIconTexture = t;
-            }
-            ImageButton.ImageButtonStyle st = new ImageButton.ImageButtonStyle();
-            st.imageUp = new TextureRegionDrawable(new TextureRegion(t));
-            st.imageOver = st.imageUp;
-            st.imageDown = st.imageUp;
-            return new ImageButton(st);
-        }
-        return new TextButton(fallbackText, skin, fallbackStyle);
     }
 
     private TextureRegionDrawable loadPausePanelBackground() {
@@ -757,20 +771,23 @@ public class PlayScreen implements Screen {
     }
 
     private void enqueueChecker(
-        Pixmap pm,
-        int x,
-        int y,
-        boolean[] visited,
-        ArrayDeque<Integer> queue,
-        int w,
-        int h) {
+            Pixmap pm,
+            int x,
+            int y,
+            boolean[] visited,
+            ArrayDeque<Integer> queue,
+            int w,
+            int h) {
 
-        if (x < 0 || x >= w || y < 0 || y >= h) return;
+        if (x < 0 || x >= w || y < 0 || y >= h)
+            return;
         int idx = y * w + x;
-        if (visited[idx]) return;
+        if (visited[idx])
+            return;
 
         int pixel = pm.getPixel(x, y);
-        if (!isCheckerLikePixel(pixel)) return;
+        if (!isCheckerLikePixel(pixel))
+            return;
 
         visited[idx] = true;
         queue.addLast(idx);
@@ -778,7 +795,8 @@ public class PlayScreen implements Screen {
 
     private boolean isCheckerLikePixel(int pixel) {
         int a = pixel & 0xFF;
-        if (a < 220) return false;
+        if (a < 220)
+            return false;
 
         int r = (pixel >>> 24) & 0xFF;
         int g = (pixel >>> 16) & 0xFF;

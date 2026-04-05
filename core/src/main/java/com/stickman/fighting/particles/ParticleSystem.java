@@ -1,7 +1,6 @@
 package com.stickman.fighting.particles;
 
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
-import com.badlogic.gdx.math.Matrix4;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -11,30 +10,31 @@ import java.util.List;
  * ParticleSystem — Singleton quản lý toàn bộ particle effects.
  *
  * Cách dùng từ PlayScreen:
- *   // Khi đánh trúng:
- *   ParticleSystem.getInstance().emit(
- *       ParticleEffect.EffectType.HIT_SPARK, hitX, hitY);
+ * // Khi đánh trúng:
+ * ParticleSystem.getInstance().emit(
+ * ParticleEffect.EffectType.HIT_SPARK, hitX, hitY);
  *
- *   // Trong render():
- *   ParticleSystem.getInstance().render(shapeRenderer);
+ * // Trong render():
+ * ParticleSystem.getInstance().render(shapeRenderer);
  *
- *   // Trong update():
- *   ParticleSystem.getInstance().update(delta);
+ * // Trong update():
+ * ParticleSystem.getInstance().update(delta);
  */
 public class ParticleSystem {
 
     private static ParticleSystem instance;
 
     public static ParticleSystem getInstance() {
-        if (instance == null) instance = new ParticleSystem();
+        if (instance == null)
+            instance = new ParticleSystem();
         return instance;
     }
 
     private final List<ParticleEffect> activeEffects = new ArrayList<>(16);
-    private final ParticlePool         pool          = new ParticlePool();
-    private Matrix4                    projectionMatrix;
+    private final ParticlePool pool = new ParticlePool();
 
-    private ParticleSystem() {}
+    private ParticleSystem() {
+    }
 
     // ── Public API ────────────────────────────────────────────────────────────
 
@@ -50,7 +50,7 @@ public class ParticleSystem {
 
     /** Phát combo: spark + impact cùng lúc (đòn đánh mạnh) */
     public void emitHitCombo(float x, float y) {
-        emit(ParticleEffect.EffectType.HIT_SPARK,  x, y);
+        emit(ParticleEffect.EffectType.HIT_SPARK, x, y);
         emit(ParticleEffect.EffectType.HIT_IMPACT, x, y);
         emit(ParticleEffect.EffectType.BLOOD_BURST, x, y);
     }
@@ -60,8 +60,8 @@ public class ParticleSystem {
         emit(ParticleEffect.EffectType.KO_EXPLOSION, x, y);
         // Thêm vài hit spark xung quanh
         for (int i = 0; i < 3; i++) {
-            float ox = x + (float)(Math.random() * 60 - 30);
-            float oy = y + (float)(Math.random() * 40 - 20);
+            float ox = x + (float) (Math.random() * 60 - 30);
+            float oy = y + (float) (Math.random() * 40 - 20);
             emit(ParticleEffect.EffectType.HIT_SPARK, ox, oy);
         }
     }
@@ -88,7 +88,8 @@ public class ParticleSystem {
      * ShapeRenderer projection matrix phải được set trước khi gọi.
      */
     public void render(ShapeRenderer sr) {
-        if (activeEffects.isEmpty()) return;
+        if (activeEffects.isEmpty())
+            return;
         for (ParticleEffect effect : activeEffects) {
             effect.render(sr);
         }
@@ -96,7 +97,8 @@ public class ParticleSystem {
 
     /** Xóa toàn bộ effects (dùng khi reset round) */
     public void clear() {
-        for (ParticleEffect e : activeEffects) pool.free(e);
+        for (ParticleEffect e : activeEffects)
+            pool.free(e);
         activeEffects.clear();
     }
 
@@ -105,5 +107,7 @@ public class ParticleSystem {
         instance = null;
     }
 
-    public int getActiveCount() { return activeEffects.size(); }
+    public int getActiveCount() {
+        return activeEffects.size();
+    }
 }
