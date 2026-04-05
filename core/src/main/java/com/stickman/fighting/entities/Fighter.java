@@ -37,8 +37,8 @@ public abstract class Fighter {
     protected boolean facingRight; // Hướng nhân vật nhìn
 
     // ── Kích thước nhân vật ───────────────────────────────────────────────────
-    public static final float WIDTH  = 40f;
-    public static final float HEIGHT = 80f;
+    public static final float WIDTH  = 50f;   // To hơn một chút (Cũ là 40f)
+    public static final float HEIGHT = 120f;  // Cao gấp rưỡi (Cũ là 80f)
 
     // ── Bounding Box ──────────────────────────────────────────────────────────
     protected Rectangle bounds;      // Thân (body) – dùng cho va chạm push
@@ -76,7 +76,7 @@ public abstract class Fighter {
         attackBox  = new Rectangle(0, 0, 0, 0); // Vô hiệu hóa mặc định
 
         maxHp      = Constants.MAX_HP;
-        hp         = maxHp;
+        this.hp = this.maxHp;
         animState  = AnimState.IDLE;
         bodyColor  = color;
         currentAttackType = AttackType.PUNCH;
@@ -378,73 +378,69 @@ public abstract class Fighter {
      *  / \ ← Hai chân (góc thay đổi theo walk cycle)
      * /   \
      */
-    // Fighter.java — XÓA method render() cũ, THÊM 2 method sau:
+    // ── Render (ShapeRenderer) ĐÃ ĐƯỢC ĐỘ LẠI ────────────────────────────────
 
-    /**
-     * Vẽ phần Filled (đầu tròn).
-     * Gọi giữa sr.begin(ShapeType.Filled) ... sr.end()
-     */
+    // Độ dày của các nét vẽ
+    private static final float LINE_THICKNESS = 6f;
+
     public void renderFilled(ShapeRenderer sr) {
         Color renderColor = getEffectiveColor();
         sr.setColor(renderColor);
 
         float cx    = position.x + WIDTH / 2f;
         float by    = position.y;
-        float headR = 12f;
+        // Đầu giữ nguyên size (15f), nhưng vì tổng thể cao 120f nên nhìn đầu sẽ nhỏ đi
+        float headR = 15f;
         float headY = by + HEIGHT - headR;
 
-        sr.ellipse(cx - headR, headY, headR * 2f, headR * 2f);
+        sr.circle(cx, headY, headR);
     }
 
-    /**
-     * Vẽ phần Line (thân, tay, chân).
-     * Gọi giữa sr.begin(ShapeType.Line) ... sr.end()
-     */
     public void renderLines(ShapeRenderer sr) {
         Color renderColor = getEffectiveColor();
         sr.setColor(renderColor);
 
         float cx    = position.x + WIDTH / 2f;
         float by    = position.y;
-        float headR = 12f;
+        float headR = 15f;
         float headY = by + HEIGHT - headR;
-        float neckY = headY - headR;
-        float hipY  = by + HEIGHT * 0.40f;
-        float handY = by + HEIGHT * 0.55f;
+        float neckY = headY - headR + 2f;
+
+        // 1. RÚT NGẮN CỔ LẠI
+        float hipY  = by + HEIGHT * 0.38f;
+        float handY = by + HEIGHT * 0.72f; // (Cũ là 0.62f) Đẩy khớp vai lên cao sát vào đầu hơn
 
         // Góc swing
         float legSwing = 0f;
-        if      (animState == AnimState.WALK) legSwing = (float)Math.sin(animTimer * 8f) * 18f;
+        if      (animState == AnimState.WALK) legSwing = (float)Math.sin(animTimer * 10f) * 25f;
         else if (animState == AnimState.JUMP) legSwing = -20f;
 
         float armSwing = (animState == AnimState.ATTACK)
-            ? (facingRight ? 35f : -35f)
-            : -legSwing * 0.5f;
+            ? (facingRight ? 45f : -45f)
+            : -legSwing * 0.6f;
 
-        // Thân
-        sr.line(cx, neckY, cx, hipY);
+        // Vẽ Thân
+        sr.rectLine(cx, neckY, cx, hipY, LINE_THICKNESS);
 
-        // Tay trái
-        float armLen  = 30f;
-        float armLX   = (float)Math.cos(Math.toRadians(210 + armSwing)) * armLen;
-        float armLY   = (float)Math.sin(Math.toRadians(210 + armSwing)) * armLen;
-        sr.line(cx, handY, cx + armLX, handY + armLY);
+        // 2. TAY (Giữ nguyên góc buông thõng 225 và 315)
+        float armLen  = 40f;
+        float armLX   = cx + (float)Math.cos(Math.toRadians(225 + armSwing)) * armLen;
+        float armLY   = handY + (float)Math.sin(Math.toRadians(225 + armSwing)) * armLen;
+        sr.rectLine(cx, handY, armLX, armLY, LINE_THICKNESS);
 
-        // Tay phải
-        float armRX = (float)Math.cos(Math.toRadians(330 - armSwing)) * armLen;
-        float armRY = (float)Math.sin(Math.toRadians(330 - armSwing)) * armLen;
-        sr.line(cx, handY, cx + armRX, handY + armRY);
+        float armRX = cx + (float)Math.cos(Math.toRadians(315 - armSwing)) * armLen;
+        float armRY = handY + (float)Math.sin(Math.toRadians(315 - armSwing)) * armLen;
+        sr.rectLine(cx, handY, armRX, armRY, LINE_THICKNESS);
 
-        // Chân trái
+        // 3. CHÂN
         float legLen = HEIGHT * 0.42f;
-        float legLX  = (float)Math.cos(Math.toRadians(240 + legSwing)) * legLen;
-        float legLY  = (float)Math.sin(Math.toRadians(240 + legSwing)) * legLen;
-        sr.line(cx, hipY, cx + legLX, hipY + legLY);
+        float legLX  = cx + (float)Math.cos(Math.toRadians(240 + legSwing)) * legLen;
+        float legLY  = hipY + (float)Math.sin(Math.toRadians(240 + legSwing)) * legLen;
+        sr.rectLine(cx, hipY, legLX, legLY, LINE_THICKNESS);
 
-        // Chân phải
-        float legRX = (float)Math.cos(Math.toRadians(300 - legSwing)) * legLen;
-        float legRY = (float)Math.sin(Math.toRadians(300 - legSwing)) * legLen;
-        sr.line(cx, hipY, cx + legRX, hipY + legRY);
+        float legRX = cx + (float)Math.cos(Math.toRadians(300 - legSwing)) * legLen;
+        float legRY = hipY + (float)Math.sin(Math.toRadians(300 - legSwing)) * legLen;
+        sr.rectLine(cx, hipY, legRX, legRY, LINE_THICKNESS);
     }
 
     /** Màu thực tế sau khi áp dụng hit flash */

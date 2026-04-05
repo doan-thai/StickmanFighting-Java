@@ -356,22 +356,22 @@ public class PlayScreen implements Screen {
     private void renderFighters() {
         shapeRenderer.setProjectionMatrix(stage.getCamera().combined);
 
-        // Pass 1: Filled (đầu tròn)
+        // GỘP CHUNG VÀO 1 PASS FILLED DUY NHẤT
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+
+        // Vẽ đầu
         player1.renderFilled(shapeRenderer);
         player2.renderFilled(shapeRenderer);
-        shapeRenderer.end();
 
-        // Pass 2: Lines (thân, tay, chân)
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+        // Vẽ thân, tay, chân (dùng rectLine đặc ruột)
         player1.renderLines(shapeRenderer);
         player2.renderLines(shapeRenderer);
+
         shapeRenderer.end();
 
-        // Pass 3: Particles
+        // Pass Particles (Giữ nguyên)
         ParticleSystem.getInstance().render(shapeRenderer);
     }
-
     private void drawKOOverlay() {
         game.batch.setProjectionMatrix(stage.getCamera().combined);
         game.batch.begin();
@@ -390,48 +390,52 @@ public class PlayScreen implements Screen {
         root.setFillParent(true);
         root.top().pad(12);
 
-        // HP bars
+        // 1. Khởi tạo thanh máu
         ProgressBar.ProgressBarStyle p1Style = makeHpBarStyle(
-                new Color(0.2f, 0.6f, 1f, 1f), true);
+            new Color(0.2f, 0.6f, 1f, 1f), true);
         hpBarP1 = new ProgressBar(0f, 1f, 0.01f, false, p1Style);
         hpBarP1.setValue(1f);
 
         ProgressBar.ProgressBarStyle p2Style = makeHpBarStyle(
-                new Color(1f, 0.25f, 0.25f, 1f), false);
+            new Color(1f, 0.25f, 0.25f, 1f), false);
         hpBarP2 = new ProgressBar(0f, 1f, 0.01f, false, p2Style);
-        hpBarP2.setValue(1f);
+        // BẮT BUỘC LÀ 0f: Vì P2 chạy ngược, 0 có nghĩa là "Đầy máu"
+        hpBarP2.setValue(0f);
 
+        // Thiết lập Font chữ
         BitmapFont scoreFont = WoodenSkin.createUIFont(42);
         BitmapFont timerFontUi = WoodenSkin.createUIFont(34);
         skin.add("hud-score-font", scoreFont, BitmapFont.class);
         skin.add("hud-timer-font", timerFontUi, BitmapFont.class);
-        skin.add("hudScore", new Label.LabelStyle(scoreFont, new Color(1f, 0.94f, 0.78f, 1f)), Label.LabelStyle.class);
-        skin.add("hudTimer", new Label.LabelStyle(timerFontUi, new Color(1f, 0.88f, 0.50f, 1f)),
-                Label.LabelStyle.class);
 
-        // Labels P1 / P2
-        Label labelP1 = new Label("P1", skin);
-        labelP1.setColor(new Color(0.2f, 0.6f, 1f, 1f));
-        labelP1.setFontScale(1.1f);
+        skin.add("hudScore", new Label.LabelStyle(scoreFont, new Color(1f, 0.5f, 0f, 1f)), Label.LabelStyle.class);
+        skin.add("hudTimer", new Label.LabelStyle(timerFontUi, Color.WHITE), Label.LabelStyle.class);
 
-        Label labelP2 = new Label("P2", skin);
-        labelP2.setColor(new Color(1f, 0.25f, 0.25f, 1f));
-        labelP2.setFontScale(1.1f);
+        // XÓA LABEL P1 VÀ P2 Ở ĐÂY
 
-        // Bảng giữa: Score + Timer
+        // 2. Chữ Player 1 / Player 2 (Nằm DƯỚI thanh máu)
+        Label subLabelP1 = new Label("Player 1", skin);
+        // Đổi màu Trắng thành Xanh (giống thanh máu)
+        subLabelP1.setColor(new Color(0.2f, 0.6f, 1f, 1f));
+        subLabelP1.setFontScale(1.1f); // Tăng size chữ lên một chút
+
+        Label subLabelP2 = new Label("Player 2", skin);
+        // Đổi màu Trắng thành Đỏ (giống thanh máu)
+        subLabelP2.setColor(new Color(1f, 0.25f, 0.25f, 1f));
+        subLabelP2.setFontScale(1.1f);
+
+        // 3. Khu vực Tỉ số và Đồng hồ đếm ngược
         Table midTable = new Table();
         scoreLabel = new Label(scoreP1 + " - " + scoreP2, skin, "hudScore");
         scoreLabel.setAlignment(Align.center);
+        scoreLabel.setFontScale(1.4f);
+
         timerLabel = new Label(String.valueOf((int) roundTimeLeft), skin, "hudTimer");
         timerLabel.setAlignment(Align.center);
+        timerLabel.setFontScale(1.1f);
 
-        Table timerBox = new Table();
-        timerBox.setBackground(new TextureRegionDrawable(new TextureRegion(makeHudBadgeTexture())));
-        timerBox.pad(5f, 16f, 5f, 16f);
-        timerBox.add(timerLabel).center();
-
-        midTable.add(scoreLabel).expandX().center().padBottom(2f).row();
-        midTable.add(timerBox).expandX().center();
+        midTable.add(scoreLabel).expandX().center().padBottom(6f).row();
+        midTable.add(timerLabel).expandX().center();
 
         // Nút Pause
         TextButton btnPause = new TextButton("|| PAUSE", skin, "light");
@@ -445,28 +449,26 @@ public class PlayScreen implements Screen {
             }
         });
 
-        // Hàng 1: chỉ nút Pause ở góc trên bên phải
         Table pauseRow = new Table();
         pauseRow.add().expandX().fillX();
-        pauseRow.add(btnPause).width(146).height(48).right();
+        pauseRow.add(btnPause).width(120).height(40).right();
 
-        // Hàng 2: thông tin trận đấu + thanh máu đẩy sát hai mép hơn
+        // 4. BỐ CỤC LẠI BẢNG (Đã bỏ P1/P2 ở trên cùng)
         Table leftHud = new Table();
-        leftHud.add(labelP1).padRight(6f);
-        leftHud.add(hpBarP1).height(24).expandX().fillX().minWidth(300f);
+        leftHud.add(hpBarP1).height(24).expandX().fillX().minWidth(300f).row(); // Thanh máu
+        leftHud.add(subLabelP1).left().padTop(6f); // Tên Player 1
 
         Table rightHud = new Table();
-        rightHud.right();
-        rightHud.add(hpBarP2).height(24).expandX().fillX().minWidth(300f).padRight(6f);
-        rightHud.add(labelP2);
+        rightHud.add(hpBarP2).height(24).expandX().fillX().minWidth(300f).row(); // Thanh máu
+        rightHud.add(subLabelP2).right().padTop(6f); // Tên Player 2
 
         Table battleHudRow = new Table();
-        battleHudRow.add(leftHud).expandX().fillX().padLeft(4f).padRight(8f);
-        battleHudRow.add(midTable).width(120).padLeft(8f).padRight(8f);
-        battleHudRow.add(rightHud).expandX().fillX().padLeft(8f).padRight(4f);
+        battleHudRow.add(leftHud).expandX().fillX().padLeft(20f).padRight(12f);
+        battleHudRow.add(midTable).width(140);
+        battleHudRow.add(rightHud).expandX().fillX().padLeft(12f).padRight(20f);
 
-        root.add(pauseRow).expandX().fillX().row();
-        root.add(battleHudRow).expandX().fillX().padTop(8f);
+        root.add(pauseRow).expandX().fillX().padBottom(-20f).row();
+        root.add(battleHudRow).expandX().fillX().padTop(0f);
         stage.addActor(root);
     }
 
@@ -476,7 +478,10 @@ public class PlayScreen implements Screen {
         displayedHpP2 += (player2.getHpPercent() - displayedHpP2) * smoothing;
 
         hpBarP1.setValue(displayedHpP1);
-        hpBarP2.setValue(displayedHpP2);
+
+        // BẮT BUỘC PHẢI CÓ "1f -": Để thanh máu P2 tụt từ Phải sang Trái
+        hpBarP2.setValue(1f - displayedHpP2);
+
         timerLabel.setText(String.valueOf((int) Math.ceil(roundTimeLeft)));
     }
 
@@ -621,31 +626,39 @@ public class PlayScreen implements Screen {
     }
 
     // ── Texture Helpers ───────────────────────────────────────────────────────
+// Hàm tự động tạo một khối màu đơn sắc co giãn tự do, KHÔNG BAO GIỜ TRÀN VIỀN
+    // Thêm tham số height vào để ép LibGDX phải vẽ chiều cao
+    private TextureRegionDrawable createSolidColor(Color color, float height) {
+        Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
+        pixmap.setColor(color);
+        pixmap.fill();
+        Texture tex = new Texture(pixmap);
+        pixmap.dispose();
+        TextureRegionDrawable drawable = new TextureRegionDrawable(new TextureRegion(tex));
+
+        drawable.setMinWidth(0f);      // Width bằng 0 để chống tràn chiều ngang
+        drawable.setMinHeight(height); // FIX LỖI TÀNG HÌNH: Ép chiều cao cố định
+        return drawable;
+    }
 
     private ProgressBar.ProgressBarStyle makeHpBarStyle(Color barColor, boolean isP1) {
-        if (hpBgTexture == null)
-            hpBgTexture = loadOrCreate("hp_frame_left.png", 1, 1,
-                    new Color(0.18f, 0.18f, 0.18f, 0.9f));
-        if (hpFrameLeftTexture == null)
-            hpFrameLeftTexture = loadOrCreate("hp_frame_left.png", 300, 22,
-                    new Color(0.18f, 0.18f, 0.18f, 0.9f));
-        if (hpFrameRightTexture == null)
-            hpFrameRightTexture = loadOrCreate("hp_frame_right.png", 300, 22,
-                    new Color(0.18f, 0.18f, 0.18f, 0.9f));
+        // Nền màu xám đen, cao 24px
+        TextureRegionDrawable bgDrawable = createSolidColor(new Color(0.18f, 0.18f, 0.18f, 0.9f), 24f);
+        // Lõi thanh máu màu Xanh/Đỏ, cao 24px
+        TextureRegionDrawable fillDrawable = createSolidColor(barColor, 24f);
 
-        Texture barTex;
-        if (isP1) {
-            hpBarP1Texture = loadOrCreate("hp_fill_blue.png", 300, 18, barColor);
-            barTex = hpBarP1Texture;
-        } else {
-            hpBarP2Texture = loadOrCreate("hp_fill_red.png", 300, 18, barColor);
-            barTex = hpBarP2Texture;
-        }
+        // FIX LỖI: Tạo một cái Knob "tàng hình" bằng Color.CLEAR (màu trong suốt)
+        TextureRegionDrawable emptyKnob = createSolidColor(Color.CLEAR, 24f);
 
         ProgressBar.ProgressBarStyle style = new ProgressBar.ProgressBarStyle();
-        style.background = new TextureRegionDrawable(new TextureRegion(
-                isP1 ? hpFrameLeftTexture : hpFrameRightTexture));
-        style.knobBefore = new TextureRegionDrawable(new TextureRegion(barTex));
+        style.background = bgDrawable;
+        style.knob = emptyKnob; // Bắt buộc nhét knob vào để LibGDX không bị ngáo
+
+        if (isP1) {
+            style.knobBefore = fillDrawable;
+        } else {
+            style.knobAfter = fillDrawable;
+        }
         return style;
     }
 
