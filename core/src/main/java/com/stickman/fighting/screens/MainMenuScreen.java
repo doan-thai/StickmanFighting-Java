@@ -200,12 +200,60 @@ public class MainMenuScreen implements Screen {
     private Table buildSettingsOverlay() {
         Table overlay = new Table();
         overlay.setFillParent(true);
-        overlay.top().right().pad(16);
+        // Giữ padding nhỏ để nhường không gian cho icon to
+        overlay.top().right().pad(15);
 
         Actor btnSettings = buildSettingsButton();
-        overlay.add(btnSettings).width(72).height(56);
+        // Giữ nguyên kích thước to 110x110
+        overlay.add(btnSettings).width(110).height(110);
 
         return overlay;
+    }
+
+    private Actor buildSettingsButton() {
+        String iconFile = Gdx.files.internal("icon_setting.png").exists()
+            ? "icon_setting.png"
+            : "icon_settings.png";
+
+        if (Gdx.files.internal(iconFile).exists()) {
+            settingsIconTexture = new Texture(Gdx.files.internal(iconFile));
+            // Bộ lọc Linear giúp ảnh to ra không bị răng cưa
+            settingsIconTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+
+            ImageButton.ImageButtonStyle st = new ImageButton.ImageButtonStyle();
+            st.imageUp = new TextureRegionDrawable(new TextureRegion(settingsIconTexture));
+            st.imageOver = st.imageUp;
+            st.imageDown = st.imageUp;
+
+            ImageButton b = new ImageButton(st) {
+                @Override
+                public void draw(Batch batch, float parentAlpha) {
+                    batch.flush();
+                    // Additive Blending: Giữ lại toàn bộ ánh sáng viền xanh, xóa sổ nền đen
+                    batch.setBlendFunction(GL20.GL_SRC_ALPHA, GL20.GL_ONE);
+
+                    super.draw(batch, parentAlpha);
+
+                    batch.flush();
+                    // Trả về Blend mặc định
+                    batch.setBlendFunction(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+                }
+            };
+
+            // ĐÃ XÓA HIỆU ỨNG NHẤP NHÁY Ở ĐÂY - ICON BÂY GIỜ SẼ ĐỨNG IM CỐ ĐỊNH
+
+            b.addListener(new ChangeListener() {
+                @Override public void changed(ChangeEvent e, Actor a) { onSettingsClicked(); }
+            });
+            return b;
+        }
+
+        // Fallback
+        TextButton btnSettings = new TextButton("⚙", skin, "icon");
+        btnSettings.addListener(new ChangeListener() {
+            @Override public void changed(ChangeEvent e, Actor a) { onSettingsClicked(); }
+        });
+        return btnSettings;
     }
 
     // ── Callbacks điều hướng ──────────────────────────────────────────────────
@@ -375,30 +423,5 @@ public class MainMenuScreen implements Screen {
         Texture tex = new Texture(pm);
         pm.dispose();
         return tex;
-    }
-
-    private Actor buildSettingsButton() {
-        String iconFile = Gdx.files.internal("icon_setting.png").exists()
-            ? "icon_setting.png"
-            : "icon_settings.png";
-
-        if (Gdx.files.internal(iconFile).exists()) {
-            settingsIconTexture = new Texture(Gdx.files.internal(iconFile));
-            ImageButton.ImageButtonStyle st = new ImageButton.ImageButtonStyle();
-            st.imageUp = new TextureRegionDrawable(new TextureRegion(settingsIconTexture));
-            st.imageOver = st.imageUp;
-            st.imageDown = st.imageUp;
-            ImageButton b = new ImageButton(st);
-            b.addListener(new ChangeListener() {
-                @Override public void changed(ChangeEvent e, Actor a) { onSettingsClicked(); }
-            });
-            return b;
-        }
-
-        TextButton btnSettings = new TextButton("⚙", skin, "icon");
-        btnSettings.addListener(new ChangeListener() {
-            @Override public void changed(ChangeEvent e, Actor a) { onSettingsClicked(); }
-        });
-        return btnSettings;
     }
 }

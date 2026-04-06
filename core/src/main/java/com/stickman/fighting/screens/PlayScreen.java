@@ -494,9 +494,9 @@ public class PlayScreen implements Screen {
     // ── Pause Overlay ─────────────────────────────────────────────────────────
 
     private void buildPauseOverlay() {
-        // Dim background
+        // 1. Dim background (Màng làm tối toàn màn hình)
         Pixmap dimPm = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
-        dimPm.setColor(0f, 0f, 0f, 0.55f);
+        dimPm.setColor(0f, 0f, 0f, 0.75f); // Tối 75%
         dimPm.fill();
         dimOverlayTexture = new Texture(dimPm);
         dimPm.dispose();
@@ -507,7 +507,7 @@ public class PlayScreen implements Screen {
         dimBg.setVisible(false);
         dimBg.getColor().a = 0f;
 
-        // Panel gỗ
+        // 2. Overlay chứa Panel gỗ
         pauseOverlay = new Table();
         pauseOverlay.setFillParent(true);
         pauseOverlay.center();
@@ -517,33 +517,49 @@ public class PlayScreen implements Screen {
         pauseOverlay.setScale(0.92f);
         pauseOverlay.getColor().a = 0f;
 
-        TextButton btnResume = new TextButton("TIẾP TỤC", skin, "primary");
-        TextButton btnRestart = new TextButton("CHƠI LẠI", skin, "light");
-        TextButton btnQuit = new TextButton("THOÁT", skin, "danger");
+        // 3. SỬ DỤNG CÁC STYLE CÓ SẴN TỪ WOODENSKIN (Khác màu, có bo góc)
+        // "primary": Thường là màu nổi bật (Xanh dương/Xanh lá)
+        // Đổi "primary", "light" và "danger" thành các style chuẩn dưới đây:
+        TextButton btnResume = new TextButton("TIẾP TỤC", skin, "resume");
+        TextButton btnRestart = new TextButton("CHƠI LẠI", skin, "restart");
+        TextButton btnQuit = new TextButton("THOÁT", skin, "quit");
+        // Scale nhẹ chữ lên 10% để cân đối với kích thước to của nút
+        btnResume.getLabel().setFontScale(1.1f);
+        btnRestart.getLabel().setFontScale(1.1f);
+        btnQuit.getLabel().setFontScale(1.1f);
 
+        // Map sự kiện cho các nút
         btnResume.addListener(new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent e, Actor a) {
-                togglePause();
-            }
+            @Override public void changed(ChangeEvent e, Actor a) { togglePause(); }
         });
         btnRestart.addListener(new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent e, Actor a) {
-                game.setScreen(new PlayScreen(game, twoPlayerMode));
-            }
+            @Override public void changed(ChangeEvent e, Actor a) { game.setScreen(new PlayScreen(game, twoPlayerMode)); }
         });
         btnQuit.addListener(new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent e, Actor a) {
-                game.setScreen(new MainMenuScreen(game));
-            }
+            @Override public void changed(ChangeEvent e, Actor a) { game.setScreen(new MainMenuScreen(game)); }
         });
 
+        // 4. Lắp ráp bảng gỗ trung tâm
         Table woodPanel = new Table();
-        woodPanel.setBackground(loadPausePanelBackground());
-        woodPanel.pad(52, 42, 44, 42);
-        woodPanel.defaults().width(318).height(64).padBottom(14f);
+
+        // Load trực tiếp panel_wood.png
+        if (Gdx.files.internal("panel_wood.png").exists()) {
+            if (pausePanelTexture != null) pausePanelTexture.dispose();
+            pausePanelTexture = new Texture(Gdx.files.internal("panel_wood.png"));
+            woodPanel.setBackground(new TextureRegionDrawable(new TextureRegion(pausePanelTexture)));
+        } else {
+            woodPanel.setBackground(loadPausePanelBackground()); // Fallback
+        }
+
+        woodPanel.pad(40, 50, 40, 50);
+        woodPanel.defaults().width(320).height(65).padBottom(20f);
+
+        // Thêm Title "TẠM DỪNG" lên đầu bảng
+        Label.LabelStyle titleStyle = new Label.LabelStyle(WoodenSkin.createUIFont(45), new Color(1.00f, 0.88f, 0.40f, 1f));
+        Label titleLabel = new Label("TẠM DỪNG", titleStyle);
+        titleLabel.setAlignment(Align.center);
+
+        woodPanel.add(titleLabel).padBottom(30).row();
         woodPanel.add(btnResume).row();
         woodPanel.add(btnRestart).row();
         woodPanel.add(btnQuit).padBottom(0f);
