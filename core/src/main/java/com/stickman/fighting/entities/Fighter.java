@@ -13,11 +13,11 @@ import com.stickman.fighting.utils.SoundManager;
  * Lớp cha trừu tượng cho mọi nhân vật chiến đấu.
  *
  * Chứa:
- *  - Vật lý thủ công: trọng lực, velocity, vị trí
- *  - Bounding box AABB cho va chạm (com.badlogic.gdx.math.Rectangle)
- *  - Hệ thống HP, damage, cooldown
- *  - Render stickman bằng ShapeRenderer (không cần sprite)
- *  - Trạng thái animation đơn giản (IDLE, WALK, JUMP, ATTACK, HIT, DEAD)
+ * - Vật lý thủ công: trọng lực, velocity, vị trí
+ * - Bounding box AABB cho va chạm (com.badlogic.gdx.math.Rectangle)
+ * - Hệ thống HP, damage, cooldown
+ * - Render stickman bằng ShapeRenderer (không cần sprite)
+ * - Trạng thái animation đơn giản (IDLE, WALK, JUMP, ATTACK, HIT, DEAD)
  */
 public abstract class Fighter {
 
@@ -31,25 +31,25 @@ public abstract class Fighter {
     }
 
     // ── Vị trí & Vật lý ──────────────────────────────────────────────────────
-    protected Vector2 position;   // Góc dưới-trái của bounding box
+    protected Vector2 position; // Góc dưới-trái của bounding box
     protected Vector2 velocity;
     protected boolean onGround;
     protected boolean facingRight; // Hướng nhân vật nhìn
 
     // ── Kích thước nhân vật ───────────────────────────────────────────────────
-    public static final float WIDTH  = 50f;   // To hơn một chút (Cũ là 40f)
-    public static final float HEIGHT = 120f;  // Cao gấp rưỡi (Cũ là 80f)
+    public static final float WIDTH = 50f; // To hơn một chút (Cũ là 40f)
+    public static final float HEIGHT = 120f; // Cao gấp rưỡi (Cũ là 80f)
 
     // ── Bounding Box ──────────────────────────────────────────────────────────
-    protected Rectangle bounds;      // Thân (body) – dùng cho va chạm push
-    protected Rectangle attackBox;   // Hitbox tấn công (chỉ active khi attack)
+    protected Rectangle bounds; // Thân (body) – dùng cho va chạm push
+    protected Rectangle attackBox; // Hitbox tấn công (chỉ active khi attack)
 
     // ── Chiến đấu ─────────────────────────────────────────────────────────────
     protected float hp;
     protected float maxHp;
     protected float attackCooldown; // Thời gian còn lại trước khi attack tiếp
     protected boolean isAttacking;
-    protected float attackTimer;    // Thời gian animation attack còn lại
+    protected float attackTimer; // Thời gian animation attack còn lại
     protected static final float ATTACK_DURATION = 0.25f; // giây
     protected AttackType currentAttackType;
     protected boolean isBlocking;
@@ -59,26 +59,26 @@ public abstract class Fighter {
 
     // ── Animation ─────────────────────────────────────────────────────────────
     protected AnimState animState;
-    protected float     animTimer;  // Dùng cho bộ đếm animation (walk cycle...)
-    protected float     hitFlashTimer; // Nhấp nháy khi bị đánh
+    protected float animTimer; // Dùng cho bộ đếm animation (walk cycle...)
+    protected float hitFlashTimer; // Nhấp nháy khi bị đánh
 
     // ── Màu sắc ───────────────────────────────────────────────────────────────
     protected Color bodyColor;
 
     // ── Constructor ───────────────────────────────────────────────────────────
     public Fighter(float startX, float startY, Color color) {
-        position    = new Vector2(startX, startY);
-        velocity    = new Vector2(0, 0);
-        onGround    = false;
+        position = new Vector2(startX, startY);
+        velocity = new Vector2(0, 0);
+        onGround = false;
         facingRight = true;
 
-        bounds     = new Rectangle(startX, startY, WIDTH, HEIGHT);
-        attackBox  = new Rectangle(0, 0, 0, 0); // Vô hiệu hóa mặc định
+        bounds = new Rectangle(startX, startY, WIDTH, HEIGHT);
+        attackBox = new Rectangle(0, 0, 0, 0); // Vô hiệu hóa mặc định
 
-        maxHp      = Constants.MAX_HP;
+        maxHp = Constants.MAX_HP;
         this.hp = this.maxHp;
-        animState  = AnimState.IDLE;
-        bodyColor  = color;
+        animState = AnimState.IDLE;
+        bodyColor = color;
         currentAttackType = AttackType.PUNCH;
         isBlocking = false;
         dashCooldown = 0f;
@@ -90,12 +90,12 @@ public abstract class Fighter {
 
     /**
      * Gọi mỗi frame. Xử lý:
-     *  1. Trọng lực
-     *  2. Di chuyển theo velocity
-     *  3. Giới hạn biên màn hình
-     *  4. Cooldown
-     *  5. Cập nhật bounds & attackBox
-     *  6. Logic con (subclass)
+     * 1. Trọng lực
+     * 2. Di chuyển theo velocity
+     * 3. Giới hạn biên màn hình
+     * 4. Cooldown
+     * 5. Cập nhật bounds & attackBox
+     * 6. Logic con (subclass)
      */
     // Fighter.java — thay thế toàn bộ method update()
     public void update(float delta) {
@@ -111,9 +111,9 @@ public abstract class Fighter {
 
         // 4. Kiểm tra chạm đất — phải check SAU khi di chuyển
         if (position.y <= Constants.GROUND_Y) {
-            position.y  = Constants.GROUND_Y;
-            velocity.y  = 0f;
-            onGround    = true;
+            position.y = Constants.GROUND_Y;
+            velocity.y = 0f;
+            onGround = true;
 
             // Nếu vừa đáp xuống đất → reset animation
             if (!wasOnGround && !isAttacking) {
@@ -123,24 +123,32 @@ public abstract class Fighter {
                 // Vừa đáp đất → bụi
                 float dustX = position.x + WIDTH / 2f;
                 ParticleSystem.getInstance().emit(
-                    ParticleEffect.EffectType.DUST_LAND, dustX, position.y);
+                        ParticleEffect.EffectType.DUST_LAND, dustX, position.y);
             }
         } else {
             onGround = false;
         }
 
         // 5. Giới hạn biên trái/phải
-        final float leftLimit  = 20f;
+        final float leftLimit = 20f;
         final float rightLimit = Constants.SCREEN_WIDTH - WIDTH - 20f;
-        if (position.x < leftLimit)  { position.x = leftLimit;  velocity.x = 0f; }
-        if (position.x > rightLimit) { position.x = rightLimit; velocity.x = 0f; }
+        if (position.x < leftLimit) {
+            position.x = leftLimit;
+            velocity.x = 0f;
+        }
+        if (position.x > rightLimit) {
+            position.x = rightLimit;
+            velocity.x = 0f;
+        }
 
         // 6. Cập nhật bounds
         bounds.setPosition(position.x, position.y);
 
         // 7. Cooldown tấn công
-        if (attackCooldown > 0f) attackCooldown -= delta;
-        if (dashCooldown > 0f) dashCooldown -= delta;
+        if (attackCooldown > 0f)
+            attackCooldown -= delta;
+        if (dashCooldown > 0f)
+            dashCooldown -= delta;
         if (knockdownTimer > 0f) {
             knockdownTimer -= delta;
             if (knockdownTimer <= 0f && onGround && !isAttacking) {
@@ -154,13 +162,16 @@ public abstract class Fighter {
             if (attackTimer <= 0f) {
                 isAttacking = false;
                 attackBox.set(0f, 0f, 0f, 0f);
-                if (onGround) setAnimState(AnimState.IDLE);
-                else          setAnimState(AnimState.JUMP);
+                if (onGround)
+                    setAnimState(AnimState.IDLE);
+                else
+                    setAnimState(AnimState.JUMP);
             }
         }
 
         // 9. Hit flash timer
-        if (hitFlashTimer > 0f) hitFlashTimer -= delta;
+        if (hitFlashTimer > 0f)
+            hitFlashTimer -= delta;
 
         // 10. Walk animation timer
         if (animState == AnimState.WALK || animState == AnimState.IDLE) {
@@ -182,28 +193,33 @@ public abstract class Fighter {
     // ── Hành động ─────────────────────────────────────────────────────────────
 
     public void moveLeft(float delta) {
-        if (knockdownTimer > 0f || isBlocking) return;
+        if (knockdownTimer > 0f || isBlocking)
+            return;
         velocity.x = -Constants.PLAYER_SPEED;
         facingRight = false;
-        if (onGround && !isAttacking) setAnimState(AnimState.WALK);
+        if (onGround && !isAttacking)
+            setAnimState(AnimState.WALK);
     }
 
     public void moveRight(float delta) {
-        if (knockdownTimer > 0f || isBlocking) return;
+        if (knockdownTimer > 0f || isBlocking)
+            return;
         velocity.x = Constants.PLAYER_SPEED;
         facingRight = true;
-        if (onGround && !isAttacking) setAnimState(AnimState.WALK);
+        if (onGround && !isAttacking)
+            setAnimState(AnimState.WALK);
     }
 
     public void stopHorizontal() {
         velocity.x = 0;
-        if (onGround && !isAttacking) setAnimState(AnimState.IDLE);
+        if (onGround && !isAttacking)
+            setAnimState(AnimState.IDLE);
     }
 
     public void jump() {
         if (onGround && knockdownTimer <= 0f) {
             velocity.y = Constants.JUMP_VELOCITY;
-            onGround   = false;
+            onGround = false;
             setAnimState(AnimState.JUMP);
             SoundManager.getInstance().playSound(SoundManager.SoundEffect.JUMP);
 
@@ -211,7 +227,7 @@ public abstract class Fighter {
             float puffX = position.x + WIDTH / 2f;
             float puffY = position.y;
             ParticleSystem.getInstance().emit(
-                ParticleEffect.EffectType.JUMP_PUFF, puffX, puffY);
+                    ParticleEffect.EffectType.JUMP_PUFF, puffX, puffY);
         }
     }
 
@@ -233,8 +249,10 @@ public abstract class Fighter {
     }
 
     public boolean attack(AttackType type) {
-        if (attackCooldown > 0 || isAttacking || knockdownTimer > 0f) return false;
-        if (isBlocking) isBlocking = false;
+        if (attackCooldown > 0 || isAttacking || knockdownTimer > 0f)
+            return false;
+        if (isBlocking)
+            isBlocking = false;
 
         currentAttackType = type;
         isAttacking = true;
@@ -266,7 +284,8 @@ public abstract class Fighter {
      * Nếu trúng → gây damage và kích hoạt hiệu ứng hit cho target.
      */
     public boolean checkHit(Fighter target) {
-        if (!isAttacking) return false;
+        if (!isAttacking)
+            return false;
         if (attackBox.overlaps(target.bounds)) {
             target.receiveHit(getCurrentAttackDamage());
 
@@ -316,7 +335,7 @@ public abstract class Fighter {
         hitFlashTimer = 0.15f;
         setAnimState(AnimState.HIT);
         SoundManager.getInstance()
-            .playSoundWithVariation(SoundManager.SoundEffect.HIT_RECEIVE, 1.0f);
+                .playSoundWithVariation(SoundManager.SoundEffect.HIT_RECEIVE, 1.0f);
     }
 
     public void setBlocking(boolean blocking) {
@@ -325,7 +344,8 @@ public abstract class Fighter {
             return;
         }
         this.isBlocking = blocking;
-        if (blocking) stopHorizontal();
+        if (blocking)
+            stopHorizontal();
     }
 
     public boolean isBlocking() {
@@ -333,20 +353,23 @@ public abstract class Fighter {
     }
 
     public boolean dash() {
-        if (dashCooldown > 0f || knockdownTimer > 0f) return false;
+        if (dashCooldown > 0f || knockdownTimer > 0f)
+            return false;
         float dir = facingRight ? 1f : -1f;
         offsetX(dir * Constants.DASH_DISTANCE);
         float leftLimit = 20f;
         float rightLimit = Constants.SCREEN_WIDTH - WIDTH - 20f;
-        if (position.x < leftLimit) position.x = leftLimit;
-        if (position.x > rightLimit) position.x = rightLimit;
+        if (position.x < leftLimit)
+            position.x = leftLimit;
+        if (position.x > rightLimit)
+            position.x = rightLimit;
         bounds.setPosition(position.x, position.y);
         dashCooldown = Constants.DASH_COOLDOWN;
         return true;
     }
 
     public void setMaxHpScale(float scale) {
-        float clamped = Math.max(0.25f, Math.min(2.0f, scale));
+        float clamped = Math.max(Constants.HP_SCALE_MIN, Math.min(Constants.HP_SCALE_MAX, scale));
         maxHp = Constants.MAX_HP * clamped;
         hp = maxHp; // Sửa lại thành gán thẳng máu bằng maxHp
     }
@@ -370,10 +393,10 @@ public abstract class Fighter {
      * Gọi giữa shapeRenderer.begin(ShapeType.Line/Filled) ... end()
      *
      * Cấu trúc stickman:
-     *   ○  ← Đầu (ellipse)
-     *   │  ← Thân
-     *  / \ ← Hai chân (góc thay đổi theo walk cycle)
-     * /   \
+     * ○ ← Đầu (ellipse)
+     * │ ← Thân
+     * / \ ← Hai chân (góc thay đổi theo walk cycle)
+     * / \
      */
     // ── Render (ShapeRenderer) ĐÃ ĐƯỢC ĐỘ LẠI ────────────────────────────────
 
@@ -384,8 +407,8 @@ public abstract class Fighter {
         Color renderColor = getEffectiveColor();
         sr.setColor(renderColor);
 
-        float cx    = position.x + WIDTH / 2f;
-        float by    = position.y;
+        float cx = position.x + WIDTH / 2f;
+        float by = position.y;
         // Đầu giữ nguyên size (15f), nhưng vì tổng thể cao 120f nên nhìn đầu sẽ nhỏ đi
         float headR = 15f;
         float headY = by + HEIGHT - headR;
@@ -397,52 +420,54 @@ public abstract class Fighter {
         Color renderColor = getEffectiveColor();
         sr.setColor(renderColor);
 
-        float cx    = position.x + WIDTH / 2f;
-        float by    = position.y;
+        float cx = position.x + WIDTH / 2f;
+        float by = position.y;
         float headR = 15f;
         float headY = by + HEIGHT - headR;
         float neckY = headY - headR + 2f;
 
         // 1. RÚT NGẮN CỔ LẠI
-        float hipY  = by + HEIGHT * 0.38f;
+        float hipY = by + HEIGHT * 0.38f;
         float handY = by + HEIGHT * 0.72f; // (Cũ là 0.62f) Đẩy khớp vai lên cao sát vào đầu hơn
 
         // Góc swing
         float legSwing = 0f;
-        if      (animState == AnimState.WALK) legSwing = (float)Math.sin(animTimer * 10f) * 25f;
-        else if (animState == AnimState.JUMP) legSwing = -20f;
+        if (animState == AnimState.WALK)
+            legSwing = (float) Math.sin(animTimer * 10f) * 25f;
+        else if (animState == AnimState.JUMP)
+            legSwing = -20f;
 
         float armSwing = (animState == AnimState.ATTACK)
-            ? (facingRight ? 45f : -45f)
-            : -legSwing * 0.6f;
+                ? (facingRight ? 45f : -45f)
+                : -legSwing * 0.6f;
 
         // Vẽ Thân
         sr.rectLine(cx, neckY, cx, hipY, LINE_THICKNESS);
 
         // 2. TAY (Giữ nguyên góc buông thõng 225 và 315)
-        float armLen  = 40f;
-        float armLX   = cx + (float)Math.cos(Math.toRadians(225 + armSwing)) * armLen;
-        float armLY   = handY + (float)Math.sin(Math.toRadians(225 + armSwing)) * armLen;
+        float armLen = 40f;
+        float armLX = cx + (float) Math.cos(Math.toRadians(225 + armSwing)) * armLen;
+        float armLY = handY + (float) Math.sin(Math.toRadians(225 + armSwing)) * armLen;
         sr.rectLine(cx, handY, armLX, armLY, LINE_THICKNESS);
 
-        float armRX = cx + (float)Math.cos(Math.toRadians(315 - armSwing)) * armLen;
-        float armRY = handY + (float)Math.sin(Math.toRadians(315 - armSwing)) * armLen;
+        float armRX = cx + (float) Math.cos(Math.toRadians(315 - armSwing)) * armLen;
+        float armRY = handY + (float) Math.sin(Math.toRadians(315 - armSwing)) * armLen;
         sr.rectLine(cx, handY, armRX, armRY, LINE_THICKNESS);
 
         // 3. CHÂN
         float legLen = HEIGHT * 0.42f;
-        float legLX  = cx + (float)Math.cos(Math.toRadians(240 + legSwing)) * legLen;
-        float legLY  = hipY + (float)Math.sin(Math.toRadians(240 + legSwing)) * legLen;
+        float legLX = cx + (float) Math.cos(Math.toRadians(240 + legSwing)) * legLen;
+        float legLY = hipY + (float) Math.sin(Math.toRadians(240 + legSwing)) * legLen;
         sr.rectLine(cx, hipY, legLX, legLY, LINE_THICKNESS);
 
-        float legRX = cx + (float)Math.cos(Math.toRadians(300 - legSwing)) * legLen;
-        float legRY = hipY + (float)Math.sin(Math.toRadians(300 - legSwing)) * legLen;
+        float legRX = cx + (float) Math.cos(Math.toRadians(300 - legSwing)) * legLen;
+        float legRY = hipY + (float) Math.sin(Math.toRadians(300 - legSwing)) * legLen;
         sr.rectLine(cx, hipY, legRX, legRY, LINE_THICKNESS);
     }
 
     /** Màu thực tế sau khi áp dụng hit flash */
     private Color getEffectiveColor() {
-        if (hitFlashTimer > 0f && (int)(hitFlashTimer * 20) % 2 == 0) {
+        if (hitFlashTimer > 0f && (int) (hitFlashTimer * 20) % 2 == 0) {
             return Color.WHITE;
         }
         return bodyColor;
@@ -462,20 +487,54 @@ public abstract class Fighter {
 
     // ── Getters ───────────────────────────────────────────────────────────────
 
-    public float     getHp()         { return hp; }
-    public float     getMaxHp()      { return maxHp; }
-    public float     getHpPercent()  { return hp / maxHp; }
-    public Rectangle getBounds()     { return bounds; }
-    public Vector2   getPosition()   { return position; }
-    public boolean   isFacingRight() { return facingRight; }
-    public boolean   isOnGround()    { return onGround; }
-    public boolean   isAttacking()   { return isAttacking; }
-    public AttackType getCurrentAttackType() { return currentAttackType; }
+    public float getHp() {
+        return hp;
+    }
 
-    public float getCenterX() { return position.x + WIDTH / 2f; }
-    public float getCenterY() { return position.y + HEIGHT / 2f; }
+    public float getMaxHp() {
+        return maxHp;
+    }
 
-    /** Dùng cho lớp điều phối gameplay để xoay hướng nhìn mà không phá encapsulation. */
+    public float getHpPercent() {
+        return hp / maxHp;
+    }
+
+    public Rectangle getBounds() {
+        return bounds;
+    }
+
+    public Vector2 getPosition() {
+        return position;
+    }
+
+    public boolean isFacingRight() {
+        return facingRight;
+    }
+
+    public boolean isOnGround() {
+        return onGround;
+    }
+
+    public boolean isAttacking() {
+        return isAttacking;
+    }
+
+    public AttackType getCurrentAttackType() {
+        return currentAttackType;
+    }
+
+    public float getCenterX() {
+        return position.x + WIDTH / 2f;
+    }
+
+    public float getCenterY() {
+        return position.y + HEIGHT / 2f;
+    }
+
+    /**
+     * Dùng cho lớp điều phối gameplay để xoay hướng nhìn mà không phá
+     * encapsulation.
+     */
     public void setFacingRight(boolean faceRight) {
         this.facingRight = faceRight;
     }
@@ -497,18 +556,18 @@ public abstract class Fighter {
     public void reset(float startX, float startY, boolean faceRight) {
         position.set(startX, startY);
         velocity.set(0, 0);
-        hp             = maxHp;
-        isAttacking    = false;
+        hp = maxHp;
+        isAttacking = false;
         attackCooldown = 0;
-        attackTimer    = 0;
-        hitFlashTimer  = 0;
+        attackTimer = 0;
+        hitFlashTimer = 0;
         currentAttackType = AttackType.PUNCH;
         isBlocking = false;
         dashCooldown = 0f;
         knockdownTimer = 0f;
         consecutiveHitsReceived = 0;
-        facingRight    = faceRight;
-        onGround       = false;
+        facingRight = faceRight;
+        onGround = false;
         setAnimState(AnimState.IDLE);
     }
 }

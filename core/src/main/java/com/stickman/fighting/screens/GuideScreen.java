@@ -13,7 +13,6 @@ import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
-import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
@@ -79,15 +78,24 @@ public class GuideScreen implements Screen {
         stage.getViewport().update(width, height, true);
     }
 
-    @Override public void pause() {}
-    @Override public void resume() {}
-    @Override public void hide() {}
+    @Override
+    public void pause() {
+    }
+
+    @Override
+    public void resume() {
+    }
+
+    @Override
+    public void hide() {
+    }
 
     @Override
     public void dispose() {
         stage.dispose();
         skin.dispose();
-        if (backgroundTexture != null) backgroundTexture.dispose();
+        if (backgroundTexture != null)
+            backgroundTexture.dispose();
         for (Texture t : generatedTextures) {
             t.dispose();
         }
@@ -113,13 +121,13 @@ public class GuideScreen implements Screen {
         root.setFillParent(true);
         root.top().pad(28f, 12f, 12f, 12f);
 
-        Label title = new Label("HUONG DAN CHOI", skin, "guideTitle");
+        Label title = new Label("HƯỚNG DẪN CHƠI", skin, "guideTitle");
         title.setAlignment(Align.center);
 
         Label subtitle = new Label(
-            "Doc nhanh dieu khien va meo giao tranh truoc khi vao tran.",
-            skin,
-            "guideSubtitle");
+                "Đọc nhanh điều khiển và mẹo giao tranh trước khi vào trận.",
+                skin,
+                "guideSubtitle");
         subtitle.setAlignment(Align.center);
         subtitle.setWrap(true);
 
@@ -132,59 +140,52 @@ public class GuideScreen implements Screen {
         Table leftCol = new Table();
         leftCol.top();
         leftCol.add(makeGuideCard(
-            "MUC TIEU TRAN DAU",
-            "- Danh bai doi thu bang cach dua mau ve 0.\n"
-                + "- Het gio: ben nhieu mau hon se thang.\n"
-                + "- Neu bang mau khi het gio: ket qua hoa.",
-            new Color(1.00f, 0.67f, 0.18f, 1f),
-            386,
-            174)).width(386f).height(174f).padBottom(10f).row();
+                "MỤC TIÊU TRẬN ĐẤU",
+                "- Đánh bại đối thủ bằng cách đưa máu về 0.\n"
+                        + "- Hết giờ: bên nhiều máu hơn sẽ thắng.\n"
+                        + "- Nếu bằng máu khi hết giờ: kết quả hòa.",
+                new Color(1.00f, 0.67f, 0.18f, 1f),
+                474,
+                174)).width(474f).height(174f).padBottom(10f).row();
 
         leftCol.add(makeGuideCard(
-            "DIEU KHIEN NGUOI CHOI 2",
-            "- Mui ten trai/phai: Di chuyen.\n"
-                + "- Mui ten len: Nhay.\n"
-                + "- Num4: Do, Num5: Dam, Num6: Da.\n"
-                + "- Num4 + Num5: Energy-shot, Num3: Toc bien.",
-            new Color(1.00f, 0.34f, 0.34f, 1f),
-            386,
-            196)).width(386f).height(196f);
-
-        Table centerCol = new Table();
-        centerCol.top();
-        Image stickmanArt = new Image(new TextureRegionDrawable(
-            new TextureRegion(createStickmanIllustrationTexture())));
-        centerCol.add(stickmanArt).width(190f).height(388f).center();
+                "ĐIỀU KHIỂN NGƯỜI CHƠI 2",
+                "- Mũi tên trái/phải: Di chuyển.\n"
+                        + "- Mũi tên lên: Nhảy.\n"
+                        + "- Num4: Đỡ, Num5: Đấm, Num6: Đá.\n"
+                        + "- Num4 + Num5: Energy-shot, Num3: Tốc biến.",
+                new Color(1.00f, 0.34f, 0.34f, 1f),
+                474,
+                196)).width(474f).height(196f);
 
         Table rightCol = new Table();
         rightCol.top();
         rightCol.add(makeGuideCard(
-            "DIEU KHIEN NGUOI CHOI 1",
-            "- A/D: Di chuyen trai phai.\n"
-                + "- W: Nhay.\n"
-                + "- U: Do, I: Dam, O: Da.\n"
-                + "- U + I: Energy-shot, L: Toc bien.",
-            new Color(0.30f, 0.72f, 1.00f, 1f),
-            386,
-            184)).width(386f).height(184f).padBottom(10f).row();
+                "ĐIỀU KHIỂN NGƯỜI CHƠI 1",
+                "- A/D: Di chuyển trái phải.\n"
+                        + "- W: Nhảy.\n"
+                        + "- U: Đỡ, I: Đấm, O: Đá.\n"
+                        + "- U + I: Energy-shot, L: Tốc biến.",
+                new Color(0.30f, 0.72f, 1.00f, 1f),
+                474,
+                184)).width(474f).height(184f).padBottom(10f).row();
 
         rightCol.add(makeGuideCard(
-            "MEO CHOI NHANH",
-            "- Do don giam sat thuong nhan vao.\n"
-                + "- Kick gay 10 damage.\n"
-                + "- Combo 5 hit khong bi do se knockdown.\n"
-                + "- Energy-shot: 14 damage, cooldown 0.75s.",
-            new Color(0.44f, 0.95f, 0.50f, 1f),
-            386,
-            186)).width(386f).height(186f);
+                "MẸO CHƠI NHANH",
+                "- Đỡ đòn giảm sát thương nhận vào.\n"
+                        + "- Kick gây 10 damage.\n"
+                        + "- Combo 5 hit không bị đỡ sẽ knockdown.\n"
+                        + "- Energy-shot: 14 damage, cooldown 0.75s.",
+                new Color(0.44f, 0.95f, 0.50f, 1f),
+                474,
+                186)).width(474f).height(186f);
 
-        content.add(leftCol).width(392f).padRight(6f).fillY();
-        content.add(centerCol).width(192f).padLeft(4f).padRight(4f).fillY();
-        content.add(rightCol).width(392f).padLeft(6f).fillY();
+        content.add(leftCol).width(474f).padRight(12f).fillY();
+        content.add(rightCol).width(474f).padLeft(12f).fillY();
 
         root.add(content).expand().fill().row();
 
-        Label backHint = new Label("Nhan ESC hoac nut mui ten de quay lai", skin, "guideHint");
+        Label backHint = new Label("Nhấn ESC hoặc nút < để quay lại", skin, "guideHint");
         backHint.setAlignment(Align.center);
         root.add(backHint).center().padTop(8f).padBottom(2f);
 
@@ -193,15 +194,15 @@ public class GuideScreen implements Screen {
     }
 
     private Table makeGuideCard(
-        String heading,
-        String content,
-        Color accentColor,
-        int cardWidth,
-        int cardHeight) {
+            String heading,
+            String content,
+            Color accentColor,
+            int cardWidth,
+            int cardHeight) {
 
         Table card = new Table();
         card.setBackground(new TextureRegionDrawable(
-            new TextureRegion(createNeonCardTexture(cardWidth, cardHeight, accentColor))));
+                new TextureRegion(createNeonCardTexture(cardWidth, cardHeight, accentColor))));
         card.top().left().pad(12f, 14f, 12f, 14f);
         card.setClip(true);
 
@@ -240,34 +241,34 @@ public class GuideScreen implements Screen {
         skin.add("guide-back-font", backFont, BitmapFont.class);
 
         skin.add("guideTitle", new Label.LabelStyle(
-            titleFont, new Color(0.88f, 0.96f, 1f, 1f)), Label.LabelStyle.class);
+                titleFont, new Color(0.88f, 0.96f, 1f, 1f)), Label.LabelStyle.class);
         skin.add("guideSubtitle", new Label.LabelStyle(
-            subtitleFont, new Color(0.63f, 0.74f, 0.84f, 1f)), Label.LabelStyle.class);
+                subtitleFont, new Color(0.63f, 0.74f, 0.84f, 1f)), Label.LabelStyle.class);
         skin.add("guideCardTitle", new Label.LabelStyle(
-            cardTitleFont, new Color(0.92f, 0.96f, 1f, 1f)), Label.LabelStyle.class);
+                cardTitleFont, new Color(0.92f, 0.96f, 1f, 1f)), Label.LabelStyle.class);
         skin.add("guideCardContent", new Label.LabelStyle(
-            cardContentFont, new Color(0.82f, 0.88f, 0.95f, 1f)), Label.LabelStyle.class);
+                cardContentFont, new Color(0.82f, 0.88f, 0.95f, 1f)), Label.LabelStyle.class);
         skin.add("guideHint", new Label.LabelStyle(
-            hintFont, new Color(0.56f, 0.67f, 0.79f, 1f)), Label.LabelStyle.class);
+                hintFont, new Color(0.56f, 0.67f, 0.79f, 1f)), Label.LabelStyle.class);
 
         TextButton.TextButtonStyle backStyle = new TextButton.TextButtonStyle();
         backStyle.font = backFont;
         backStyle.fontColor = new Color(0.88f, 0.95f, 1f, 1f);
         backStyle.up = new TextureRegionDrawable(new TextureRegion(
-            createRoundedButtonTexture(88, 52,
-                new Color(0.08f, 0.13f, 0.22f, 0.95f),
-                new Color(0.32f, 0.85f, 1.0f, 0.95f),
-                16)));
+                createRoundedButtonTexture(88, 52,
+                        new Color(0.45f, 0.25f, 0.12f, 0.95f),
+                        new Color(0.80f, 0.50f, 0.20f, 0.95f),
+                        16)));
         backStyle.over = new TextureRegionDrawable(new TextureRegion(
-            createRoundedButtonTexture(88, 52,
-                new Color(0.10f, 0.17f, 0.28f, 0.98f),
-                new Color(0.52f, 0.95f, 1.0f, 1f),
-                16)));
+                createRoundedButtonTexture(88, 52,
+                        new Color(0.55f, 0.32f, 0.15f, 0.98f),
+                        new Color(0.90f, 0.60f, 0.25f, 1f),
+                        16)));
         backStyle.down = new TextureRegionDrawable(new TextureRegion(
-            createRoundedButtonTexture(88, 52,
-                new Color(0.06f, 0.10f, 0.18f, 1f),
-                new Color(0.28f, 0.72f, 0.95f, 1f),
-                16)));
+                createRoundedButtonTexture(88, 52,
+                        new Color(0.35f, 0.18f, 0.08f, 1f),
+                        new Color(0.60f, 0.35f, 0.15f, 1f),
+                        16)));
         skin.add("guideBack", backStyle, TextButton.TextButtonStyle.class);
     }
 
@@ -279,18 +280,16 @@ public class GuideScreen implements Screen {
             public void enter(InputEvent event, float x, float y, int pointer, Actor fromActor) {
                 button.clearActions();
                 button.addAction(Actions.parallel(
-                    Actions.scaleTo(hoverScale, hoverScale, 0.12f),
-                    Actions.color(new Color(0.65f, 0.95f, 1f, 1f), 0.12f)
-                ));
+                        Actions.scaleTo(hoverScale, hoverScale, 0.12f),
+                        Actions.color(new Color(0.65f, 0.95f, 1f, 1f), 0.12f)));
             }
 
             @Override
             public void exit(InputEvent event, float x, float y, int pointer, Actor toActor) {
                 button.clearActions();
                 button.addAction(Actions.parallel(
-                    Actions.scaleTo(1f, 1f, 0.12f),
-                    Actions.color(Color.WHITE, 0.12f)
-                ));
+                        Actions.scaleTo(1f, 1f, 0.12f),
+                        Actions.color(Color.WHITE, 0.12f)));
             }
         });
     }
@@ -299,8 +298,8 @@ public class GuideScreen implements Screen {
         Pixmap pm = new Pixmap(w, h, Pixmap.Format.RGBA8888);
         int radius = Math.min(28, Math.min(w, h) / 4);
 
-        Color baseTop = new Color(0.08f, 0.11f, 0.17f, 0.94f);
-        Color baseBottom = new Color(0.05f, 0.08f, 0.13f, 0.94f);
+        Color baseTop = new Color(0.40f, 0.23f, 0.10f, 0.90f);
+        Color baseBottom = new Color(0.28f, 0.15f, 0.06f, 0.90f);
         Color innerBorder = accentColor.cpy().lerp(Color.WHITE, 0.24f);
         Color outerGlow = accentColor.cpy();
         outerGlow.a = 0.28f;
@@ -324,24 +323,23 @@ public class GuideScreen implements Screen {
         // Viền chính + viền sáng trong để tạo cảm giác glow.
         for (int y = 1; y < h - 1; y++) {
             for (int x = 1; x < w - 1; x++) {
-                if (!insideRoundedRect(x, y, w, h, radius)) continue;
+                if (!insideRoundedRect(x, y, w, h, radius))
+                    continue;
 
-                boolean borderPixel =
-                    !insideRoundedRect(x - 1, y, w, h, radius)
-                    || !insideRoundedRect(x + 1, y, w, h, radius)
-                    || !insideRoundedRect(x, y - 1, w, h, radius)
-                    || !insideRoundedRect(x, y + 1, w, h, radius);
+                boolean borderPixel = !insideRoundedRect(x - 1, y, w, h, radius)
+                        || !insideRoundedRect(x + 1, y, w, h, radius)
+                        || !insideRoundedRect(x, y - 1, w, h, radius)
+                        || !insideRoundedRect(x, y + 1, w, h, radius);
 
                 if (borderPixel) {
                     pm.drawPixel(x, y, Color.rgba8888(accentColor));
                     continue;
                 }
 
-                boolean innerGlowPixel =
-                    !insideRoundedRect(x - 2, y, w, h, radius)
-                    || !insideRoundedRect(x + 2, y, w, h, radius)
-                    || !insideRoundedRect(x, y - 2, w, h, radius)
-                    || !insideRoundedRect(x, y + 2, w, h, radius);
+                boolean innerGlowPixel = !insideRoundedRect(x - 2, y, w, h, radius)
+                        || !insideRoundedRect(x + 2, y, w, h, radius)
+                        || !insideRoundedRect(x, y - 2, w, h, radius)
+                        || !insideRoundedRect(x, y + 2, w, h, radius);
 
                 if (innerGlowPixel) {
                     pm.drawPixel(x, y, Color.rgba8888(innerBorder));
@@ -368,12 +366,12 @@ public class GuideScreen implements Screen {
 
         for (int y = 1; y < h - 1; y++) {
             for (int x = 1; x < w - 1; x++) {
-                if (!insideRoundedRect(x, y, w, h, radius)) continue;
-                boolean borderPixel =
-                    !insideRoundedRect(x - 1, y, w, h, radius)
-                    || !insideRoundedRect(x + 1, y, w, h, radius)
-                    || !insideRoundedRect(x, y - 1, w, h, radius)
-                    || !insideRoundedRect(x, y + 1, w, h, radius);
+                if (!insideRoundedRect(x, y, w, h, radius))
+                    continue;
+                boolean borderPixel = !insideRoundedRect(x - 1, y, w, h, radius)
+                        || !insideRoundedRect(x + 1, y, w, h, radius)
+                        || !insideRoundedRect(x, y - 1, w, h, radius)
+                        || !insideRoundedRect(x, y + 1, w, h, radius);
                 if (borderPixel) {
                     pm.drawPixel(x, y, Color.rgba8888(border));
                 }
@@ -386,73 +384,13 @@ public class GuideScreen implements Screen {
         return texture;
     }
 
-    private Texture createStickmanIllustrationTexture() {
-        int w = 190;
-        int h = 388;
-        Pixmap pm = new Pixmap(w, h, Pixmap.Format.RGBA8888);
-
-        // Nền kính tối nhẹ.
-        for (int y = 0; y < h; y++) {
-            float t = (float) y / (float) Math.max(1, h - 1);
-            Color c = new Color(0.04f + 0.02f * t, 0.07f + 0.04f * t, 0.12f + 0.08f * t, 0.50f);
-            for (int x = 0; x < w; x++) {
-                if (insideRoundedRect(x, y, w, h, 24)) {
-                    pm.drawPixel(x, y, Color.rgba8888(c));
-                }
-            }
-        }
-
-        Color blue = new Color(0.34f, 0.78f, 1f, 1f);
-        Color red = new Color(1f, 0.38f, 0.38f, 1f);
-
-        drawStickman(pm, 58, 110, blue, true);
-        drawStickman(pm, 132, 104, red, false);
-
-        // Sàn neon.
-        drawLineThick(pm, 20, 70, 170, 70, 2, new Color(0.38f, 0.90f, 1f, 0.95f));
-
-        Texture texture = new Texture(pm);
-        pm.dispose();
-        generatedTextures.add(texture);
-        return texture;
-    }
-
-    private void drawStickman(Pixmap pm, int cx, int by, Color color, boolean faceRight) {
-        int headR = 14;
-        int headY = by + 120;
-        int neckY = headY - headR;
-        int hipY = by + 60;
-        int shoulderY = by + 88;
-
-        pm.setColor(color);
-        pm.drawCircle(cx, headY, headR);
-        drawLineThick(pm, cx, neckY, cx, hipY, 2, color);
-
-        int armForward = faceRight ? 26 : -26;
-        int armBack = -armForward;
-        drawLineThick(pm, cx, shoulderY, cx + armForward, shoulderY + 16, 2, color);
-        drawLineThick(pm, cx, shoulderY, cx + armBack, shoulderY - 12, 2, color);
-
-        int legForward = faceRight ? 22 : -22;
-        int legBack = -legForward;
-        drawLineThick(pm, cx, hipY, cx + legForward, by + 20, 2, color);
-        drawLineThick(pm, cx, hipY, cx + legBack, by + 12, 2, color);
-    }
-
-    private void drawLineThick(Pixmap pm, int x1, int y1, int x2, int y2, int thickness, Color color) {
-        pm.setColor(color);
-        int half = Math.max(1, thickness);
-        for (int o = -half; o <= half; o++) {
-            pm.drawLine(x1 + o, y1, x2 + o, y2);
-            pm.drawLine(x1, y1 + o, x2, y2 + o);
-        }
-    }
-
     private boolean insideRoundedRect(int x, int y, int w, int h, int radius) {
         int r = Math.max(1, Math.min(radius, Math.min(w, h) / 2));
 
-        if (x >= r && x < w - r) return y >= 0 && y < h;
-        if (y >= r && y < h - r) return x >= 0 && x < w;
+        if (x >= r && x < w - r)
+            return y >= 0 && y < h;
+        if (y >= r && y < h - r)
+            return x >= 0 && x < w;
 
         int cx = x < r ? r : (w - r - 1);
         int cy = y < r ? r : (h - r - 1);
@@ -462,6 +400,10 @@ public class GuideScreen implements Screen {
     }
 
     private Texture createGuideBackgroundTexture() {
+        if (Gdx.files.internal("panel_wood.png").exists()) {
+            return new Texture(Gdx.files.internal("panel_wood.png"));
+        }
+
         int w = Constants.SCREEN_WIDTH;
         int h = Constants.SCREEN_HEIGHT;
         Pixmap pm = new Pixmap(w, h, Pixmap.Format.RGBA8888);

@@ -432,16 +432,17 @@ public class PlayScreen implements Screen {
         midTable.add(scoreLabel).expandX().center().row();
         midTable.add(timerLabel).expandX().center().padTop(-5f);
 
-        // 3. Nút Pause dạng Icon (Thay cho nút "|| PAUSE" phèn)
+        // 3. Nút Pause dạng icon thuần (không chữ), vẽ procedural để tránh méo ảnh
+        // asset.
         Button.ButtonStyle pauseStyle = new Button.ButtonStyle();
 
         if (pauseIconTexture == null) {
-            pauseIconTexture = new Texture(Gdx.files.internal("pause_icon.png"));
+            pauseIconTexture = createPauseIconTexture(48);
         }
 
-        // SỬA DÒNG NÀY: Bọc Texture vào TextureRegion rồi mới cho vào
-        // TextureRegionDrawable
         pauseStyle.up = new TextureRegionDrawable(new TextureRegion(pauseIconTexture));
+        pauseStyle.over = pauseStyle.up;
+        pauseStyle.down = pauseStyle.up;
 
         Button btnPause = new Button(pauseStyle);
         btnPause.addListener(new ChangeListener() {
@@ -455,7 +456,7 @@ public class PlayScreen implements Screen {
         Table pauseRow = new Table();
 
         pauseRow.add().expandX(); // Đẩy nút pause về bên phải
-        pauseRow.add(btnPause).size(45, 45).right().padRight(10); // Nút pause nhỏ gọn 45x45
+        pauseRow.add(btnPause).size(46, 46).right().padRight(10);
 
         Table leftHud = new Table();
         leftHud.add(hpBarP1).expandX().fillX().height(30f);
@@ -516,12 +517,9 @@ public class PlayScreen implements Screen {
         pauseOverlay.setScale(0.92f);
         pauseOverlay.getColor().a = 0f;
 
-        Label pauseTitle = new Label("TẠM DỪNG", skin, "title");
-        pauseTitle.setAlignment(Align.center);
-
-        TextButton btnResume = new TextButton("TIẾP TỤC", skin, "resume");
-        TextButton btnRestart = new TextButton("CHƠI LẠI", skin, "restart");
-        TextButton btnQuit = new TextButton("THOÁT", skin, "quit");
+        TextButton btnResume = new TextButton("TIẾP TỤC", skin, "primary");
+        TextButton btnRestart = new TextButton("CHƠI LẠI", skin, "light");
+        TextButton btnQuit = new TextButton("THOÁT", skin, "danger");
 
         btnResume.addListener(new ChangeListener() {
             @Override
@@ -544,11 +542,11 @@ public class PlayScreen implements Screen {
 
         Table woodPanel = new Table();
         woodPanel.setBackground(loadPausePanelBackground());
-        woodPanel.pad(34, 36, 34, 36);
-        woodPanel.add(pauseTitle).padBottom(24).row();
-        woodPanel.add(btnResume).width(300).height(64).padBottom(14).row();
-        woodPanel.add(btnRestart).width(300).height(64).padBottom(14).row();
-        woodPanel.add(btnQuit).width(300).height(64);
+        woodPanel.pad(52, 42, 44, 42);
+        woodPanel.defaults().width(318).height(64).padBottom(14f);
+        woodPanel.add(btnResume).row();
+        woodPanel.add(btnRestart).row();
+        woodPanel.add(btnQuit).padBottom(0f);
 
         pauseOverlay.add(woodPanel);
 
@@ -700,6 +698,124 @@ public class PlayScreen implements Screen {
         Texture t = new Texture(pm);
         pm.dispose();
         return t;
+    }
+
+    private Texture createPauseIconTexture(int size) {
+        // Supersample để icon mượt hơn, giảm cảm giác răng cưa/pixel.
+        int sample = 4;
+        int hiSize = size * sample;
+        Pixmap hi = new Pixmap(hiSize, hiSize, Pixmap.Format.RGBA8888);
+        hi.setColor(0f, 0f, 0f, 0f);
+        hi.fill();
+
+        int x = sample;
+        int y = sample;
+        int w = hiSize - sample * 2;
+        int h = hiSize - sample * 2;
+        int radius = Math.max(sample * 4, hiSize / 8);
+
+        drawRoundedRectFill(hi, x, y, w, h, radius, new Color(0.96f, 0.93f, 0.84f, 1f));
+        drawRoundedRectBorder(hi, x, y, w, h, radius, new Color(0.16f, 0.10f, 0.04f, 1f));
+        drawRoundedRectBorder(hi, x + sample, y + sample, w - sample * 2, h - sample * 2,
+                Math.max(sample * 2, radius - sample), new Color(0.16f, 0.10f, 0.04f, 1f));
+
+        int barWidth = Math.max(sample * 4, hiSize / 9);
+        int barHeight = Math.max(sample * 16, (int) (hiSize * 0.56f));
+        int gap = Math.max(sample * 5, hiSize / 7);
+        int total = barWidth * 2 + gap;
+        int x0 = (hiSize - total) / 2;
+        int y0 = (hiSize - barHeight) / 2;
+
+        hi.setColor(0.10f, 0.08f, 0.06f, 1f);
+        hi.fillRectangle(x0, y0, barWidth, barHeight);
+        hi.fillRectangle(x0 + barWidth + gap, y0, barWidth, barHeight);
+
+        Pixmap pm = downsamplePixmap(hi, sample);
+        hi.dispose();
+
+        Texture t = new Texture(pm);
+        pm.dispose();
+        t.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+        return t;
+    }
+
+    private Pixmap downsamplePixmap(Pixmap src, int factor) {
+        int outW = src.getWidth() / factor;
+        int outH = src.getHeight() / factor;
+        Pixmap out = new Pixmap(outW, outH, Pixmap.Format.RGBA8888);
+
+        for (int y = 0; y < outH; y++) {
+            for (int x = 0; x < outW; x++) {
+                int sumR = 0;
+                int sumG = 0;
+                int sumB = 0;
+                int sumA = 0;
+                for (int sy = 0; sy < factor; sy++) {
+                    for (int sx = 0; sx < factor; sx++) {
+                        int px = src.getPixel(x * factor + sx, y * factor + sy);
+                        sumR += (px >>> 24) & 0xFF;
+                        sumG += (px >>> 16) & 0xFF;
+                        sumB += (px >>> 8) & 0xFF;
+                        sumA += px & 0xFF;
+                    }
+                }
+                int samples = factor * factor;
+                int r = sumR / samples;
+                int g = sumG / samples;
+                int b = sumB / samples;
+                int a = sumA / samples;
+                out.drawPixel(x, y, (r << 24) | (g << 16) | (b << 8) | a);
+            }
+        }
+        return out;
+    }
+
+    private void drawRoundedRectFill(Pixmap pm, int x, int y, int w, int h, int radius, Color color) {
+        pm.setColor(color);
+        for (int py = y; py < y + h; py++) {
+            for (int px = x; px < x + w; px++) {
+                if (isInsideRoundedRect(px, py, x, y, w, h, radius)) {
+                    pm.drawPixel(px, py);
+                }
+            }
+        }
+    }
+
+    private void drawRoundedRectBorder(Pixmap pm, int x, int y, int w, int h, int radius, Color color) {
+        pm.setColor(color);
+        for (int py = y + 1; py < y + h - 1; py++) {
+            for (int px = x + 1; px < x + w - 1; px++) {
+                if (!isInsideRoundedRect(px, py, x, y, w, h, radius)) {
+                    continue;
+                }
+                boolean border = !isInsideRoundedRect(px - 1, py, x, y, w, h, radius)
+                        || !isInsideRoundedRect(px + 1, py, x, y, w, h, radius)
+                        || !isInsideRoundedRect(px, py - 1, x, y, w, h, radius)
+                        || !isInsideRoundedRect(px, py + 1, x, y, w, h, radius);
+                if (border) {
+                    pm.drawPixel(px, py);
+                }
+            }
+        }
+    }
+
+    private boolean isInsideRoundedRect(int px, int py, int x, int y, int w, int h, int radius) {
+        int r = Math.max(1, Math.min(radius, Math.min(w, h) / 2));
+        int lx = px - x;
+        int ly = py - y;
+
+        if (lx >= r && lx < w - r) {
+            return ly >= 0 && ly < h;
+        }
+        if (ly >= r && ly < h - r) {
+            return lx >= 0 && lx < w;
+        }
+
+        int cx = lx < r ? r : (w - r - 1);
+        int cy = ly < r ? r : (h - r - 1);
+        int dx = lx - cx;
+        int dy = ly - cy;
+        return (dx * dx + dy * dy) <= (r * r);
     }
 
     private Texture createArenaTexture() {
