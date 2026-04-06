@@ -262,7 +262,7 @@ public class PlayScreen implements Screen {
 
         float p1Cx = player1.getCenterX();
         float p2Cx = player2.getCenterX();
-        float overlap = (Fighter.WIDTH - Math.abs(p1Cx - p2Cx)) / 2f + 1f;
+        float overlap = (Fighter.WIDTH - Math.abs(p1Cx - p2Cx)) / 2f;
 
         if (p1Cx < p2Cx) {
             player1.offsetX(-overlap);
@@ -372,6 +372,7 @@ public class PlayScreen implements Screen {
         // Pass Particles (Giữ nguyên)
         ParticleSystem.getInstance().render(shapeRenderer);
     }
+
     private void drawKOOverlay() {
         game.batch.setProjectionMatrix(stage.getCamera().combined);
         game.batch.begin();
@@ -388,16 +389,16 @@ public class PlayScreen implements Screen {
     private void buildHUD() {
         Table root = new Table();
         root.setFillParent(true);
-        root.top().pad(12);
+        root.top().pad(15); // Tăng pad trên lên một chút
 
         // 1. Khởi tạo thanh máu
         ProgressBar.ProgressBarStyle p1Style = makeHpBarStyle(
-            new Color(0.2f, 0.6f, 1f, 1f), true);
+                new Color(0.2f, 0.6f, 1f, 1f), true);
         hpBarP1 = new ProgressBar(0f, 1f, 0.01f, false, p1Style);
         hpBarP1.setValue(1f);
 
         ProgressBar.ProgressBarStyle p2Style = makeHpBarStyle(
-            new Color(1f, 0.25f, 0.25f, 1f), false);
+                new Color(1f, 0.25f, 0.25f, 1f), false);
         hpBarP2 = new ProgressBar(0f, 1f, 0.01f, false, p2Style);
         // BẮT BUỘC LÀ 0f: Vì P2 chạy ngược, 0 có nghĩa là "Đầy máu"
         hpBarP2.setValue(0f);
@@ -408,40 +409,41 @@ public class PlayScreen implements Screen {
         skin.add("hud-score-font", scoreFont, BitmapFont.class);
         skin.add("hud-timer-font", timerFontUi, BitmapFont.class);
 
-        skin.add("hudScore", new Label.LabelStyle(scoreFont, new Color(1f, 0.5f, 0f, 1f)), Label.LabelStyle.class);
+        // ĐỔI MÀU: Sửa màu cam thành màu Vàng Gold sáng (1f, 0.85f, 0f, 1f) cho nổi bật
+        skin.add("hudScore", new Label.LabelStyle(scoreFont, new Color(1f, 0.85f, 0f, 1f)), Label.LabelStyle.class);
         skin.add("hudTimer", new Label.LabelStyle(timerFontUi, Color.WHITE), Label.LabelStyle.class);
 
         // XÓA LABEL P1 VÀ P2 Ở ĐÂY
 
-        // 2. Chữ Player 1 / Player 2 (Nằm DƯỚI thanh máu)
-        Label subLabelP1 = new Label("Player 1", skin);
-        // Đổi màu Trắng thành Xanh (giống thanh máu)
-        subLabelP1.setColor(new Color(0.2f, 0.6f, 1f, 1f));
-        subLabelP1.setFontScale(1.1f); // Tăng size chữ lên một chút
-
-        Label subLabelP2 = new Label("Player 2", skin);
-        // Đổi màu Trắng thành Đỏ (giống thanh máu)
-        subLabelP2.setColor(new Color(1f, 0.25f, 0.25f, 1f));
-        subLabelP2.setFontScale(1.1f);
-
-        // 3. Khu vực Tỉ số và Đồng hồ đếm ngược
+        // 2. Thiết lập Tỉ số & Thời gian (Không khung)
         Table midTable = new Table();
+        // KHÔNG setBackground nữa để bỏ khung đen
+        midTable.pad(0, 20, 0, 20);
+
         scoreLabel = new Label(scoreP1 + " - " + scoreP2, skin, "hudScore");
         scoreLabel.setAlignment(Align.center);
-        scoreLabel.setFontScale(1.4f);
+        scoreLabel.setFontScale(1.5f); // Tăng size lên vì không còn khung bao ngoài
 
         timerLabel = new Label(String.valueOf((int) roundTimeLeft), skin, "hudTimer");
         timerLabel.setAlignment(Align.center);
         timerLabel.setFontScale(1.1f);
+        timerLabel.setColor(new Color(1f, 1f, 1f, 0.9f)); // Cho màu trắng hơi mờ tí cho sang
 
-        midTable.add(scoreLabel).expandX().center().padBottom(6f).row();
-        midTable.add(timerLabel).expandX().center();
+        midTable.add(scoreLabel).expandX().center().row();
+        midTable.add(timerLabel).expandX().center().padTop(-5f);
 
-        // Nút Pause
-        TextButton btnPause = new TextButton("|| PAUSE", skin, "light");
-        btnPause.getLabel().setFontScale(0.9f);
-        btnPause.setTransform(true);
-        btnPause.setOrigin(Align.center);
+        // 3. Nút Pause dạng Icon (Thay cho nút "|| PAUSE" phèn)
+        Button.ButtonStyle pauseStyle = new Button.ButtonStyle();
+
+        if (pauseIconTexture == null) {
+            pauseIconTexture = new Texture(Gdx.files.internal("pause_icon.png"));
+        }
+
+        // SỬA DÒNG NÀY: Bọc Texture vào TextureRegion rồi mới cho vào
+        // TextureRegionDrawable
+        pauseStyle.up = new TextureRegionDrawable(new TextureRegion(pauseIconTexture));
+
+        Button btnPause = new Button(pauseStyle);
         btnPause.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent e, Actor a) {
@@ -449,26 +451,25 @@ public class PlayScreen implements Screen {
             }
         });
 
+        // 4. Bố cục lại Table chính
         Table pauseRow = new Table();
-        pauseRow.add().expandX().fillX();
-        pauseRow.add(btnPause).width(120).height(40).right();
 
-        // 4. BỐ CỤC LẠI BẢNG (Đã bỏ P1/P2 ở trên cùng)
+        pauseRow.add().expandX(); // Đẩy nút pause về bên phải
+        pauseRow.add(btnPause).size(45, 45).right().padRight(10); // Nút pause nhỏ gọn 45x45
+
         Table leftHud = new Table();
-        leftHud.add(hpBarP1).height(24).expandX().fillX().minWidth(300f).row(); // Thanh máu
-        leftHud.add(subLabelP1).left().padTop(6f); // Tên Player 1
+        leftHud.add(hpBarP1).expandX().fillX().height(30f);
 
         Table rightHud = new Table();
-        rightHud.add(hpBarP2).height(24).expandX().fillX().minWidth(300f).row(); // Thanh máu
-        rightHud.add(subLabelP2).right().padTop(6f); // Tên Player 2
+        rightHud.add(hpBarP2).expandX().fillX().height(30f);
 
         Table battleHudRow = new Table();
-        battleHudRow.add(leftHud).expandX().fillX().padLeft(20f).padRight(12f);
-        battleHudRow.add(midTable).width(140);
-        battleHudRow.add(rightHud).expandX().fillX().padLeft(12f).padRight(20f);
+        battleHudRow.add(leftHud).expandX().fillX().padLeft(20f);
+        battleHudRow.add(midTable).width(150);
+        battleHudRow.add(rightHud).expandX().fillX().padRight(20f);
 
-        root.add(pauseRow).expandX().fillX().padBottom(-20f).row();
-        root.add(battleHudRow).expandX().fillX().padTop(0f);
+        root.add(pauseRow).expandX().fillX().row();
+        root.add(battleHudRow).expandX().fillX().padTop(5f);
         stage.addActor(root);
     }
 
@@ -626,33 +627,54 @@ public class PlayScreen implements Screen {
     }
 
     // ── Texture Helpers ───────────────────────────────────────────────────────
-// Hàm tự động tạo một khối màu đơn sắc co giãn tự do, KHÔNG BAO GIỜ TRÀN VIỀN
+    // Hàm tự động tạo một khối màu đơn sắc co giãn tự do, KHÔNG BAO GIỜ TRÀN VIỀN
     // Thêm tham số height vào để ép LibGDX phải vẽ chiều cao
-    private TextureRegionDrawable createSolidColor(Color color, float height) {
-        Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
-        pixmap.setColor(color);
-        pixmap.fill();
-        Texture tex = new Texture(pixmap);
-        pixmap.dispose();
-        TextureRegionDrawable drawable = new TextureRegionDrawable(new TextureRegion(tex));
 
-        drawable.setMinWidth(0f);      // Width bằng 0 để chống tràn chiều ngang
-        drawable.setMinHeight(height); // FIX LỖI TÀNG HÌNH: Ép chiều cao cố định
-        return drawable;
-    }
-
+    // Xóa hàm createSolidColor cũ và sửa lại makeHpBarStyle
     private ProgressBar.ProgressBarStyle makeHpBarStyle(Color barColor, boolean isP1) {
-        // Nền màu xám đen, cao 24px
-        TextureRegionDrawable bgDrawable = createSolidColor(new Color(0.18f, 0.18f, 0.18f, 0.9f), 24f);
-        // Lõi thanh máu màu Xanh/Đỏ, cao 24px
-        TextureRegionDrawable fillDrawable = createSolidColor(barColor, 24f);
+        // Khởi tạo và LƯU LẠI Texture để sau này dispose
+        if (hpBgTexture == null) {
+            Pixmap bgPm = new Pixmap(1, 24, Pixmap.Format.RGBA8888);
+            bgPm.setColor(new Color(0.18f, 0.18f, 0.18f, 0.9f));
+            bgPm.fill();
+            hpBgTexture = new Texture(bgPm);
+            bgPm.dispose();
+        }
 
-        // FIX LỖI: Tạo một cái Knob "tàng hình" bằng Color.CLEAR (màu trong suốt)
-        TextureRegionDrawable emptyKnob = createSolidColor(Color.CLEAR, 24f);
+        Pixmap fillPm = new Pixmap(1, 24, Pixmap.Format.RGBA8888);
+        fillPm.setColor(barColor);
+        fillPm.fill();
+        Texture fillTex = new Texture(fillPm);
+        fillPm.dispose();
+
+        // Lưu đúng texture của P1 hoặc P2
+        if (isP1)
+            hpBarP1Texture = fillTex;
+        else
+            hpBarP2Texture = fillTex;
+
+        // Tạo cục knob tàng hình (chỉ cần tạo 1 lần)
+        Pixmap knobPm = new Pixmap(1, 24, Pixmap.Format.RGBA8888);
+        knobPm.setColor(Color.CLEAR);
+        knobPm.fill();
+        Texture knobTex = new Texture(knobPm);
+        knobPm.dispose();
+
+        TextureRegionDrawable bgDrawable = new TextureRegionDrawable(new TextureRegion(hpBgTexture));
+        bgDrawable.setMinHeight(24f);
+        bgDrawable.setMinWidth(0f);
+
+        TextureRegionDrawable fillDrawable = new TextureRegionDrawable(new TextureRegion(fillTex));
+        fillDrawable.setMinHeight(24f);
+        fillDrawable.setMinWidth(0f);
+
+        TextureRegionDrawable emptyKnob = new TextureRegionDrawable(new TextureRegion(knobTex));
+        emptyKnob.setMinHeight(24f);
+        emptyKnob.setMinWidth(0f);
 
         ProgressBar.ProgressBarStyle style = new ProgressBar.ProgressBarStyle();
         style.background = bgDrawable;
-        style.knob = emptyKnob; // Bắt buộc nhét knob vào để LibGDX không bị ngáo
+        style.knob = emptyKnob;
 
         if (isP1) {
             style.knobBefore = fillDrawable;
@@ -678,21 +700,6 @@ public class PlayScreen implements Screen {
         Texture t = new Texture(pm);
         pm.dispose();
         return t;
-    }
-
-    private Texture makeHudBadgeTexture() {
-        if (hudBadgeTexture != null) {
-            return hudBadgeTexture;
-        }
-        Pixmap pm = new Pixmap(160, 56, Pixmap.Format.RGBA8888);
-        pm.setColor(0.16f, 0.11f, 0.08f, 0.92f);
-        pm.fill();
-        pm.setColor(0.78f, 0.60f, 0.30f, 1f);
-        pm.drawRectangle(0, 0, 160, 56);
-        pm.drawRectangle(2, 2, 156, 52);
-        hudBadgeTexture = new Texture(pm);
-        pm.dispose();
-        return hudBadgeTexture;
     }
 
     private Texture createArenaTexture() {
@@ -819,17 +826,5 @@ public class PlayScreen implements Screen {
         int avg = (r + g + b) / 3;
 
         return avg >= 170 && avg <= 245 && (max - min) <= 18;
-    }
-
-    private Texture loadOrCreate(String fileName, int w, int h, Color fill) {
-        if (Gdx.files.internal(fileName).exists()) {
-            return new Texture(Gdx.files.internal(fileName));
-        }
-        Pixmap pm = new Pixmap(w, h, Pixmap.Format.RGBA8888);
-        pm.setColor(fill);
-        pm.fill();
-        Texture t = new Texture(pm);
-        pm.dispose();
-        return t;
     }
 }

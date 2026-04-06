@@ -219,9 +219,6 @@ public abstract class Fighter {
      * Kích hoạt đòn tấn công.
      * Tạo attackBox phía trước mặt nhân vật.
      */
-    public boolean attack() {
-        return attack(AttackType.PUNCH);
-    }
 
     public boolean punch() {
         return attack(AttackType.PUNCH);
@@ -351,7 +348,7 @@ public abstract class Fighter {
     public void setMaxHpScale(float scale) {
         float clamped = Math.max(0.25f, Math.min(2.0f, scale));
         maxHp = Constants.MAX_HP * clamped;
-        hp = Math.min(hp, maxHp);
+        hp = maxHp; // Sửa lại thành gán thẳng máu bằng maxHp
     }
 
     private float getCurrentAttackDamage() {

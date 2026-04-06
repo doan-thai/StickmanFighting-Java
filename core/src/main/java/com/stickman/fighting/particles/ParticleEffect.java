@@ -123,9 +123,11 @@ public class ParticleEffect {
         }
 
         // Ring (HIT_IMPACT) — filled circle rỗng bằng 2 vòng
+        // Ring (HIT_IMPACT) — filled circle rỗng bằng 2 vòng
         if (hasRing) {
             sr.setColor(1f, 0.95f, 0.6f, ringAlpha);
-            sr.circle(0, 0, ringRadius); // placeholder — xem renderRing()
+            // Sửa (0, 0) thành getRingX(), getRingY()
+            sr.circle(getRingX(), getRingY(), ringRadius);
         }
         sr.end();
 
