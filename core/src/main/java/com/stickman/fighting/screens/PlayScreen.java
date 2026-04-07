@@ -56,6 +56,7 @@ public class PlayScreen implements Screen {
     private ProgressBar hpBarP2;
     private Label timerLabel;
     private Label scoreLabel;
+    private Label scoreShadowLabel; // MỚI: Dùng để tạo hiệu ứng đổ bóng cho Tỉ số
     private float displayedHpP1 = 1f;
     private float displayedHpP2 = 1f;
 
@@ -104,8 +105,10 @@ public class PlayScreen implements Screen {
         shapeRenderer = new ShapeRenderer();
         hudFont = new BitmapFont();
         hudFont.getData().setScale(1.6f);
-        timerFont = new BitmapFont();
-        timerFont.getData().setScale(2.8f);
+
+        // THAY ĐỔI: Dùng font TTF chất lượng cao thay vì font mặc định bị vỡ nét
+        timerFont = WoodenSkin.createUIFont(120);
+
         glyphLayout = new GlyphLayout();
         bgTexture = createArenaTexture();
 
@@ -138,8 +141,10 @@ public class PlayScreen implements Screen {
             update(delta);
         }
 
-        // Đếm ngược sau KO
+        // Đếm ngược sau KO (Nhưng VẪN CHO HUD VÀ PARTICLE CHẠY)
         if (koFreezeTimer > 0f) {
+            updateHUD(); // <-- Giúp thanh máu từ từ tụt hết sạch về 0
+            ParticleSystem.getInstance().update(delta); // <-- Giúp hiệu ứng máu/bụi bay tiếp cho ngầu
             koFreezeTimer -= delta;
             if (koFreezeTimer <= 0f) {
                 goToGameOver();
@@ -376,11 +381,16 @@ public class PlayScreen implements Screen {
     private void drawKOOverlay() {
         game.batch.setProjectionMatrix(stage.getCamera().combined);
         game.batch.begin();
-        timerFont.setColor(Color.ORANGE);
+
+        // Màu đỏ cam rực rỡ thay vì cam nhạt
+        timerFont.setColor(new Color(1f, 0.2f, 0.1f, 1f));
         glyphLayout.setText(timerFont, "K.O.!");
-        timerFont.draw(game.batch, "K.O.!",
-                (Constants.SCREEN_WIDTH - glyphLayout.width) / 2f,
-                Constants.SCREEN_HEIGHT * 0.68f);
+
+        // Căn giữa màn hình hoàn hảo
+        float textX = (Constants.SCREEN_WIDTH - glyphLayout.width) / 2f;
+        float textY = (Constants.SCREEN_HEIGHT + glyphLayout.height) / 2f;
+
+        timerFont.draw(game.batch, "K.O.!", textX, textY);
         game.batch.end();
     }
 
@@ -389,7 +399,7 @@ public class PlayScreen implements Screen {
     private void buildHUD() {
         Table root = new Table();
         root.setFillParent(true);
-        root.top().pad(15); // Tăng pad trên lên một chút
+        root.top().padTop(2);
 
         // 1. Khởi tạo thanh máu
         ProgressBar.ProgressBarStyle p1Style = makeHpBarStyle(
@@ -410,36 +420,48 @@ public class PlayScreen implements Screen {
         skin.add("hud-timer-font", timerFontUi, BitmapFont.class);
 
         // ĐỔI MÀU: Sửa màu cam thành màu Vàng Gold sáng (1f, 0.85f, 0f, 1f) cho nổi bật
-        skin.add("hudScore", new Label.LabelStyle(scoreFont, new Color(1f, 0.85f, 0f, 1f)), Label.LabelStyle.class);
+        skin.add("hudScore", new Label.LabelStyle(scoreFont, Color.WHITE), Label.LabelStyle.class);
         skin.add("hudTimer", new Label.LabelStyle(timerFontUi, Color.WHITE), Label.LabelStyle.class);
 
-        // XÓA LABEL P1 VÀ P2 Ở ĐÂY
+        // ================= THAY THẾ TOÀN BỘ PHẦN DƯỚI NÀY =================
 
-        // 2. Thiết lập Tỉ số & Thời gian (Không khung)
-        Table midTable = new Table();
-        // KHÔNG setBackground nữa để bỏ khung đen
-        midTable.pad(0, 20, 0, 20);
+        // 2. TẠO HIỆU ỨNG CHỮ NỔI (DROP SHADOW) CHO TỈ SỐ
 
+        // Lớp 1: Chữ đổ bóng (Nằm dưới) - Màu Đen Nâu
+        scoreShadowLabel = new Label(scoreP1 + " - " + scoreP2, skin, "hudScore");
+        scoreShadowLabel.setAlignment(Align.center);
+        scoreShadowLabel.setFontScale(1.8f); // Phóng to chữ
+        scoreShadowLabel.setColor(new Color(0.1f, 0.05f, 0f, 0.9f));
+
+        // Lớp 2: Chữ hiển thị chính (Nằm trên) - Màu Vàng Chanh cực rực rỡ
         scoreLabel = new Label(scoreP1 + " - " + scoreP2, skin, "hudScore");
         scoreLabel.setAlignment(Align.center);
-        scoreLabel.setFontScale(1.5f); // Tăng size lên vì không còn khung bao ngoài
+        scoreLabel.setFontScale(1.8f);
+        scoreLabel.setColor(new Color(1f, 0.9f, 0.1f, 1f));
 
+        // Dùng Stack để đè 2 chữ lên nhau
+        Stack scoreStack = new Stack();
+
+        Table shadowTable = new Table();
+        shadowTable.add(scoreShadowLabel).padTop(6).padLeft(6); // Đẩy bóng lệch xuống dưới và sang phải 6px
+
+        Table frontTable = new Table();
+        frontTable.add(scoreLabel);
+
+        scoreStack.add(shadowTable);
+        scoreStack.add(frontTable);
+
+        // -- Cấu hình Thời gian
         timerLabel = new Label(String.valueOf((int) roundTimeLeft), skin, "hudTimer");
         timerLabel.setAlignment(Align.center);
         timerLabel.setFontScale(1.1f);
-        timerLabel.setColor(new Color(1f, 1f, 1f, 0.9f)); // Cho màu trắng hơi mờ tí cho sang
+        timerLabel.setColor(new Color(1f, 1f, 1f, 0.9f));
 
-        midTable.add(scoreLabel).expandX().center().row();
-        midTable.add(timerLabel).expandX().center().padTop(-5f);
-
-        // 3. Nút Pause dạng icon thuần (không chữ), vẽ procedural để tránh méo ảnh
-        // asset.
+        // 3. Nút Pause
         Button.ButtonStyle pauseStyle = new Button.ButtonStyle();
-
         if (pauseIconTexture == null) {
             pauseIconTexture = createPauseIconTexture(48);
         }
-
         pauseStyle.up = new TextureRegionDrawable(new TextureRegion(pauseIconTexture));
         pauseStyle.over = pauseStyle.up;
         pauseStyle.down = pauseStyle.up;
@@ -453,11 +475,14 @@ public class PlayScreen implements Screen {
         });
 
         // 4. Bố cục lại Table chính
-        Table pauseRow = new Table();
 
-        pauseRow.add().expandX(); // Đẩy nút pause về bên phải
-        pauseRow.add(btnPause).size(46, 46).right().padRight(10);
+        Table topRow = new Table();
+        topRow.add().width(56);
+        // SỬA DÒNG NÀY: Xóa bỏ ".padTop(5f)" ở cuối để Tỉ số nhích lên cao nhất có thể
+        topRow.add(scoreStack).expandX().center();
+        topRow.add(btnPause).size(46, 46).right().padRight(10);
 
+        // DÒNG 2: Thanh Máu P1 - Thời Gian - Thanh Máu P2
         Table leftHud = new Table();
         leftHud.add(hpBarP1).expandX().fillX().height(30f);
 
@@ -466,11 +491,14 @@ public class PlayScreen implements Screen {
 
         Table battleHudRow = new Table();
         battleHudRow.add(leftHud).expandX().fillX().padLeft(20f);
-        battleHudRow.add(midTable).width(150);
+        battleHudRow.add(timerLabel).width(120).center();
         battleHudRow.add(rightHud).expandX().fillX().padRight(20f);
 
-        root.add(pauseRow).expandX().fillX().row();
-        root.add(battleHudRow).expandX().fillX().padTop(5f);
+        root.add(topRow).expandX().fillX().row();
+
+        // SỬA DÒNG NÀY: Giảm .padTop(8f) xuống thành .padTop(2f) để Thanh máu ép sát vào hàng Tỉ số
+        root.add(battleHudRow).expandX().fillX().padTop(2f);
+
         stage.addActor(root);
     }
 
@@ -489,6 +517,9 @@ public class PlayScreen implements Screen {
 
     private void updateScoreLabel() {
         scoreLabel.setText(scoreP1 + " - " + scoreP2);
+        if (scoreShadowLabel != null) {
+            scoreShadowLabel.setText(scoreP1 + " - " + scoreP2);
+        }
     }
 
     // ── Pause Overlay ─────────────────────────────────────────────────────────
@@ -958,5 +989,36 @@ public class PlayScreen implements Screen {
         int avg = (r + g + b) / 3;
 
         return avg >= 170 && avg <= 245 && (max - min) <= 18;
+    }
+
+    // MỚI: Hàm tạo hình ảnh nền cho Tỉ số (Badge) với viền kim loại và nền mờ
+    private Texture createScoreBadgeTexture() {
+        // Dùng kỹ thuật Supersampling x3 để render hình ảnh to, sau đó thu nhỏ lại giúp nét vẽ mượt mà, không bị răng cưa
+        int sample = 3;
+        int w = 160 * sample;
+        int h = 54 * sample;
+        int radius = 18 * sample;
+
+        Pixmap hi = new Pixmap(w, h, Pixmap.Format.RGBA8888);
+        hi.setColor(0f, 0f, 0f, 0f);
+        hi.fill();
+
+        // Vẽ nền tối mờ (đen ánh nâu 85%)
+        drawRoundedRectFill(hi, 0, 0, w, h, radius, new Color(0.12f, 0.08f, 0.05f, 0.85f));
+
+        // Vẽ viền ngoài cùng màu vàng kim rực rỡ
+        drawRoundedRectBorder(hi, 0, 0, w, h, radius, new Color(1f, 0.85f, 0.2f, 1f));
+        // Vẽ viền trong màu đồng để tạo độ sâu 3D
+        drawRoundedRectBorder(hi, sample, sample, w - sample*2, h - sample*2, Math.max(1, radius - sample), new Color(0.8f, 0.5f, 0.1f, 1f));
+        // Vẽ viền trong cùng tối màu để ép làm nổi nền chữ
+        drawRoundedRectBorder(hi, sample*2, sample*2, w - sample*4, h - sample*4, Math.max(1, radius - sample*2), new Color(0.3f, 0.15f, 0.05f, 1f));
+
+        Pixmap pm = downsamplePixmap(hi, sample);
+        hi.dispose();
+
+        Texture t = new Texture(pm);
+        pm.dispose();
+        t.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+        return t;
     }
 }
