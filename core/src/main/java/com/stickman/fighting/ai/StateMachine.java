@@ -37,6 +37,7 @@ public class StateMachine {
     /**
      * Chuyển sang state mới.
      * Tự động gọi exit() trên state cũ và enter() trên state mới.
+     * Sau đó kích hoạt reactionDelay để bot không phản ứng tức thì.
      */
     public void changeState(State newState) {
         if (newState == null) return;
@@ -51,6 +52,9 @@ public class StateMachine {
         previousState = currentState;
         currentState  = newState;
         currentState.enter(bot);
+
+        // Kích hoạt độ trễ phản ứng sau mỗi lần chuyển state
+        bot.triggerReactionDelay();
     }
 
     /** Quay lại state trước đó (hữu ích sau Evade) */
