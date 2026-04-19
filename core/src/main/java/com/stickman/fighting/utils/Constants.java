@@ -21,6 +21,8 @@ public final class Constants {
     public static final float HP_SCALE_MIN = 1.0f;
     public static final float HP_SCALE_MAX = 3.0f;
     public static final float ATTACK_RANGE = 80f; // px
+    public static final float PUNCH_RANGE = 46f;
+    public static final float KICK_RANGE = 62f;
     public static final float ATTACK_COOLDOWN = 0.5f; // fallback
     public static final float PUNCH_DAMAGE = 7f;
     public static final float KICK_DAMAGE = 10f;
@@ -28,6 +30,9 @@ public final class Constants {
     public static final float PUNCH_COOLDOWN = 0.22f;
     public static final float KICK_COOLDOWN = 0.34f;
     public static final float ENERGY_COOLDOWN = 0.75f;
+    public static final float ENERGY_PROJECTILE_SPEED = 640f;
+    public static final float ENERGY_PROJECTILE_RADIUS = 11f;
+    public static final float ENERGY_PROJECTILE_LIFETIME = 1.6f;
     public static final float BLOCK_DAMAGE_FACTOR = 0.25f; // giảm 75%
     public static final int KNOCKDOWN_HIT_COUNT = 5;
     public static final float KNOCKDOWN_TIME = 0.65f;

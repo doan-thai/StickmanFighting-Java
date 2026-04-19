@@ -21,6 +21,7 @@ import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.stickman.fighting.MyFightingGame;
 import com.stickman.fighting.entities.BotFighter;
+import com.stickman.fighting.entities.EnergyProjectile;
 import com.stickman.fighting.entities.Fighter;
 import com.stickman.fighting.entities.Fighter.AttackType;
 import com.stickman.fighting.entities.PlayerFighter;
@@ -73,8 +74,7 @@ public class PlayScreen implements Screen {
     private int scoreP1 = 0;
     private int scoreP2 = 0;
 
-    private float koFreezeTimer = -1f;
-    private static final float KO_FREEZE_DURATION = 1.8f;
+    private boolean isGameOver = false;
     private int winnerIndex = 0;
 
     // ── Textures (memory leak fix) ────────────────────────────────────────────
@@ -91,11 +91,20 @@ public class PlayScreen implements Screen {
     // ── Attack tracking (SFX) ─────────────────────────────────────────────────
     private boolean player1WasAttacking = false;
     private boolean player2WasAttacking = false;
+    private final ArrayDeque<EnergyProjectile> energyProjectiles = new ArrayDeque<>();
 
     // ── Constructor ───────────────────────────────────────────────────────────
+    // Constructor 1: Dùng cho ván đầu tiên (Tỉ số bắt đầu từ 0-0)
     public PlayScreen(MyFightingGame game, boolean twoPlayerMode) {
+        this(game, twoPlayerMode, 0, 0);
+    }
+
+    // Constructor 2: Dùng cho các ván Đấu Lại (Nhận tỉ số cũ truyền vào)
+    public PlayScreen(MyFightingGame game, boolean twoPlayerMode, int scoreP1, int scoreP2) {
         this.game = game;
         this.twoPlayerMode = twoPlayerMode;
+        this.scoreP1 = scoreP1;
+        this.scoreP2 = scoreP2;
     }
 
     // ── Vòng đời Screen ───────────────────────────────────────────────────────
@@ -131,25 +140,21 @@ public class PlayScreen implements Screen {
 
     @Override
     public void render(float delta) {
-        // ESC → toggle pause
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+        // ESC → toggle pause (Chỉ cho phép bấm Pause khi trận đấu chưa kết thúc)
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE) && !isGameOver) {
             togglePause();
         }
 
-        // Chỉ update khi không pause và chưa KO
-        if (!paused && koFreezeTimer < 0f) {
+        // Chỉ update game logic (đánh nhau) khi không pause và chưa game over
+        if (!paused && !isGameOver) {
             update(delta);
         }
 
-        // Đếm ngược sau KO (Nhưng VẪN CHO HUD VÀ PARTICLE CHẠY)
-        if (koFreezeTimer > 0f) {
-            updateHUD(); // <-- Giúp thanh máu từ từ tụt hết sạch về 0
-            ParticleSystem.getInstance().update(delta); // <-- Giúp hiệu ứng máu/bụi bay tiếp cho ngầu
-            koFreezeTimer -= delta;
-            if (koFreezeTimer <= 0f) {
-                goToGameOver();
-                return;
-            }
+        // Vẫn cập nhật HUD (để thanh máu tụt mượt mà) và Particle (máu/bụi bay) khi
+        // Game Over
+        if (isGameOver) {
+            updateHUD();
+            ParticleSystem.getInstance().update(delta);
         }
 
         draw();
@@ -228,23 +233,14 @@ public class PlayScreen implements Screen {
         player2.checkHit(player1);
 
         // SFX tấn công (rising edge: false → true)
-        SoundManager sm = SoundManager.getInstance();
         if (player1.isAttacking() && !player1WasAttacking) {
-            AttackType t = player1.getCurrentAttackType();
-            if (t == AttackType.KICK) {
-                sm.playSoundWithVariation(SoundManager.SoundEffect.KICK, 0.95f);
-            } else {
-                sm.playSoundWithVariation(SoundManager.SoundEffect.PUNCH, 1.0f);
-            }
+            onAttackStarted(player1);
         }
         if (player2.isAttacking() && !player2WasAttacking) {
-            AttackType t = player2.getCurrentAttackType();
-            if (t == AttackType.KICK) {
-                sm.playSoundWithVariation(SoundManager.SoundEffect.KICK, 0.95f);
-            } else {
-                sm.playSoundWithVariation(SoundManager.SoundEffect.PUNCH, 1.0f);
-            }
+            onAttackStarted(player2);
         }
+
+        updateEnergyProjectiles(delta);
 
         // Timer
         roundTimeLeft -= delta;
@@ -279,15 +275,18 @@ public class PlayScreen implements Screen {
     }
 
     private void checkRoundEnd() {
-        if (player1.isDead() && koFreezeTimer < 0f) {
+        if (isGameOver)
+            return; // Trận đấu đã kết thúc thì không check nữa
+
+        if (player1.isDead()) {
             scoreP2++;
             winnerIndex = 2;
-            triggerKO();
-        } else if (player2.isDead() && koFreezeTimer < 0f) {
+            triggerGameOver();
+        } else if (player2.isDead()) {
             scoreP1++;
             winnerIndex = 1;
-            triggerKO();
-        } else if (roundTimeLeft <= 0f && koFreezeTimer < 0f) {
+            triggerGameOver();
+        } else if (roundTimeLeft <= 0f) {
             if (player1.getHp() > player2.getHp()) {
                 scoreP1++;
                 winnerIndex = 1;
@@ -295,40 +294,138 @@ public class PlayScreen implements Screen {
                 scoreP2++;
                 winnerIndex = 2;
             } else {
-                winnerIndex = 0; // Hòa khi hết giờ và HP bằng nhau
+                winnerIndex = 0; // Hòa
             }
-            triggerKO();
+            triggerGameOver();
         }
     }
 
-    private void triggerKO() {
-        koFreezeTimer = KO_FREEZE_DURATION;
+    private void triggerGameOver() {
+        isGameOver = true;
         updateScoreLabel();
 
+        // 1. Tạo hiệu ứng Particle (máu/bụi) ngay tại vị trí người thua
         if (winnerIndex == 0) {
             float midX = (player1.getCenterX() + player2.getCenterX()) * 0.5f;
             float midY = (player1.getCenterY() + player2.getCenterY()) * 0.5f + 20f;
             ParticleSystem.getInstance().emitKO(midX, midY);
-            return;
+        } else {
+            Fighter loser;
+            if (player1.isDead())
+                loser = player1;
+            else if (player2.isDead())
+                loser = player2;
+            else
+                loser = (player1.getHp() < player2.getHp()) ? player1 : player2;
+            ParticleSystem.getInstance().emitKO(loser.getCenterX(), loser.getCenterY() + 20f);
         }
 
-        Fighter loser;
-        if (player1.isDead()) {
-            loser = player1;
-        } else if (player2.isDead()) {
-            loser = player2;
-        } else if (player1.getHp() < player2.getHp()) {
-            loser = player1;
-        } else {
-            loser = player2;
-        }
-        ParticleSystem.getInstance().emitKO(
-                loser.getCenterX(), loser.getCenterY() + 20f);
+        // 2. Xử lý âm thanh
+        SoundManager sm = SoundManager.getInstance();
+        sm.pauseMusic(); // Dừng nhạc nền chiến đấu
+        sm.playSound(SoundManager.SoundEffect.KO);
+
+        com.badlogic.gdx.utils.Timer.schedule(new com.badlogic.gdx.utils.Timer.Task() {
+            @Override
+            public void run() {
+                sm.playMusic(SoundManager.MusicTrack.GAME_OVER, false);
+            }
+        }, 1.0f);
+
+        // 3. Hiển thị bảng Game Over
+        showGameOverOverlay();
     }
 
-    private void goToGameOver() {
-        game.setScreen(new GameOverScreen(
-                game, winnerIndex, scoreP1, scoreP2, twoPlayerMode));
+    private void showGameOverOverlay() {
+        // Tận dụng lớp làm tối (dimBg) của Menu Pause
+        Actor dim = stage.getRoot().findActor("dimBg");
+        if (dim != null) {
+            dim.setVisible(true);
+            dim.addAction(Actions.fadeIn(0.4f));
+        }
+
+        // Tạo bảng UI chính
+        Table overlay = new Table();
+        overlay.setFillParent(true);
+        overlay.center();
+        overlay.setTransform(true);
+        overlay.setScale(0.8f); // Thu nhỏ lúc đầu để làm hiệu ứng pop-up
+        overlay.getColor().a = 0f;
+
+        // Bảng gỗ
+        Table woodPanel = new Table();
+        if (Gdx.files.internal("panel_wood.png").exists()) {
+            if (pausePanelTexture == null) {
+                pausePanelTexture = new Texture(Gdx.files.internal("panel_wood.png"));
+            }
+            woodPanel.setBackground(new TextureRegionDrawable(new TextureRegion(pausePanelTexture)));
+        } else {
+            woodPanel.setBackground(loadPausePanelBackground());
+        }
+        woodPanel.pad(40, 50, 40, 50);
+
+        // Chữ Tiêu đề KẾT THÚC
+        Label.LabelStyle titleStyle = new Label.LabelStyle(WoodenSkin.createUIFont(50),
+                new Color(1.00f, 0.85f, 0.20f, 1f));
+        Label titleLabel = new Label("KẾT THÚC", titleStyle);
+        titleLabel.setAlignment(Align.center);
+
+        // Chữ Người thắng
+        String winText = "HÒA NHAU!";
+        if (winnerIndex != 0) {
+            if (!twoPlayerMode) {
+                // Chế độ 1 người chơi (Đấu với máy)
+                winText = (winnerIndex == 1) ? "NGƯỜI CHƠI THẮNG !" : "MÁY THẮNG !";
+            } else {
+                // Chế độ 2 người chơi
+                winText = "NGƯỜI CHƠI " + winnerIndex + " THẮNG!";
+            }
+        }
+
+        Label winLabel = new Label(winText, skin, "hudScore");
+        winLabel.setColor(Color.WHITE);
+        winLabel.setFontScale(0.85f);
+        winLabel.setAlignment(Align.center);
+
+        // Tỉ số (Xóa chữ, chỉ để số, phóng to và đổi màu nổi bật)
+        // Dùng luôn style "hudScore" thay vì "hudTimer" để số trông dày dặn hơn
+        Label scoreLabel = new Label(scoreP1 + " - " + scoreP2, skin, "hudScore");
+        scoreLabel.setColor(new Color(1.00f, 0.85f, 0.20f, 1f)); // <-- Màu vàng (tone-sur-tone với chữ KẾT THÚC)
+        scoreLabel.setFontScale(1.6f); // <-- Phóng to chữ số lên
+        scoreLabel.setAlignment(Align.center);
+
+        // Nút bấm
+        TextButton btnRematch = new TextButton("ĐẤU LẠI", skin, "restart");
+        TextButton btnBack = new TextButton("VỀ MENU", skin, "quit");
+
+        btnRematch.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent e, Actor a) {
+                // Truyền scoreP1 và scoreP2 hiện tại sang ván chơi mới
+                game.setScreen(new PlayScreen(game, twoPlayerMode, scoreP1, scoreP2));
+            }
+        });
+        btnBack.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent e, Actor a) {
+                game.setScreen(new MainMenuScreen(game));
+            }
+        });
+
+        // Đẩy UI vào Panel gỗ
+        woodPanel.add(titleLabel).padBottom(15).row();
+        woodPanel.add(winLabel).padBottom(15).row();
+        woodPanel.add(scoreLabel).padBottom(35).row(); // Tăng khoảng trống dưới số cho thoáng
+        woodPanel.add(btnRematch).width(280).height(65).padBottom(15).row();
+        woodPanel.add(btnBack).width(280).height(65);
+
+        overlay.add(woodPanel);
+        stage.addActor(overlay);
+
+        // Hiệu ứng hiện ra mượt mà và nảy (swingOut)
+        overlay.addAction(Actions.parallel(
+                Actions.fadeIn(0.5f),
+                Actions.scaleTo(1f, 1f, 0.5f, com.badlogic.gdx.math.Interpolation.swingOut)));
     }
 
     // ── Draw ──────────────────────────────────────────────────────────────────
@@ -347,11 +444,6 @@ public class PlayScreen implements Screen {
         // 2. Fighters + Particles
         renderFighters();
 
-        // 3. KO overlay
-        if (koFreezeTimer > 0f) {
-            drawKOOverlay();
-        }
-
         // 4. HUD (luôn trên cùng)
         // Vẫn act khi pause để overlay/animation và input UI hoạt động bình thường.
         stage.act(Gdx.graphics.getDeltaTime());
@@ -367,6 +459,7 @@ public class PlayScreen implements Screen {
         // Vẽ đầu
         player1.renderFilled(shapeRenderer);
         player2.renderFilled(shapeRenderer);
+        renderEnergyProjectiles(shapeRenderer);
 
         // Vẽ thân, tay, chân (dùng rectLine đặc ruột)
         player1.renderLines(shapeRenderer);
@@ -378,20 +471,63 @@ public class PlayScreen implements Screen {
         ParticleSystem.getInstance().render(shapeRenderer);
     }
 
-    private void drawKOOverlay() {
-        game.batch.setProjectionMatrix(stage.getCamera().combined);
-        game.batch.begin();
+    private void onAttackStarted(Fighter attacker) {
+        AttackType type = attacker.getCurrentAttackType();
+        SoundManager sm = SoundManager.getInstance();
 
-        // Màu đỏ cam rực rỡ thay vì cam nhạt
-        timerFont.setColor(new Color(1f, 0.2f, 0.1f, 1f));
-        glyphLayout.setText(timerFont, "K.O.!");
+        if (type == AttackType.KICK) {
+            sm.playSoundWithVariation(SoundManager.SoundEffect.KICK, 0.95f);
+        } else {
+            sm.playSoundWithVariation(SoundManager.SoundEffect.PUNCH, 1.0f);
+        }
 
-        // Căn giữa màn hình hoàn hảo
-        float textX = (Constants.SCREEN_WIDTH - glyphLayout.width) / 2f;
-        float textY = (Constants.SCREEN_HEIGHT + glyphLayout.height) / 2f;
+        if (type == AttackType.ENERGY) {
+            spawnEnergyProjectile(attacker);
+        }
+    }
 
-        timerFont.draw(game.batch, "K.O.!", textX, textY);
-        game.batch.end();
+    private void spawnEnergyProjectile(Fighter attacker) {
+        float dir = attacker.isFacingRight() ? 1f : -1f;
+        float startX = attacker.getCenterX() + dir * (Fighter.WIDTH * 0.55f);
+        float startY = attacker.getPosition().y + Fighter.HEIGHT * 0.62f;
+
+        energyProjectiles.addLast(new EnergyProjectile(
+                attacker,
+                startX,
+                startY,
+                attacker.isFacingRight(),
+                Constants.ENERGY_DAMAGE));
+
+        // Giữ số lượng projectile ổn định trong trường hợp spam chiêu.
+        while (energyProjectiles.size() > 24) {
+            energyProjectiles.removeFirst();
+        }
+    }
+
+    private void updateEnergyProjectiles(float delta) {
+        var it = energyProjectiles.iterator();
+        while (it.hasNext()) {
+            EnergyProjectile projectile = it.next();
+            projectile.update(delta);
+
+            if (!projectile.isActive()) {
+                it.remove();
+                continue;
+            }
+
+            Fighter target = projectile.getOwner() == player1 ? player2 : player1;
+            if (!target.isDead() && projectile.hits(target)) {
+                target.receiveHit(projectile.getDamage());
+                projectile.deactivate();
+                it.remove();
+            }
+        }
+    }
+
+    private void renderEnergyProjectiles(ShapeRenderer sr) {
+        for (EnergyProjectile projectile : energyProjectiles) {
+            projectile.render(sr);
+        }
     }
 
     // ── HUD ───────────────────────────────────────────────────────────────────
@@ -427,16 +563,16 @@ public class PlayScreen implements Screen {
 
         // 2. TẠO HIỆU ỨNG CHỮ NỔI (DROP SHADOW) CHO TỈ SỐ
 
-        // Lớp 1: Chữ đổ bóng (Nằm dưới) - Màu Đen Nâu
-        scoreShadowLabel = new Label(scoreP1 + " - " + scoreP2, skin, "hudScore");
+        // Lớp 1: Chữ đổ bóng (Nằm dưới)
+        scoreShadowLabel = new Label(scoreP1 + " - " + scoreP2, skin, "title"); // Đổi thành "title"
         scoreShadowLabel.setAlignment(Align.center);
-        scoreShadowLabel.setFontScale(1.8f); // Phóng to chữ
+        scoreShadowLabel.setFontScale(1.0f); // Hạ scale xuống 1.0
         scoreShadowLabel.setColor(new Color(0.1f, 0.05f, 0f, 0.9f));
 
-        // Lớp 2: Chữ hiển thị chính (Nằm trên) - Màu Vàng Chanh cực rực rỡ
-        scoreLabel = new Label(scoreP1 + " - " + scoreP2, skin, "hudScore");
+        // Lớp 2: Chữ hiển thị chính (Nằm trên)
+        scoreLabel = new Label(scoreP1 + " - " + scoreP2, skin, "title"); // Đổi thành "title"
         scoreLabel.setAlignment(Align.center);
-        scoreLabel.setFontScale(1.8f);
+        scoreLabel.setFontScale(1.0f); // Hạ scale xuống 1.0
         scoreLabel.setColor(new Color(1f, 0.9f, 0.1f, 1f));
 
         // Dùng Stack để đè 2 chữ lên nhau
@@ -490,13 +626,15 @@ public class PlayScreen implements Screen {
         rightHud.add(hpBarP2).expandX().fillX().height(30f);
 
         Table battleHudRow = new Table();
-        battleHudRow.add(leftHud).expandX().fillX().padLeft(20f);
+        // Thêm padRight(50f) và padLeft(50f) để đẩy thanh máu cách xa đồng hồ đếm ngược
+        battleHudRow.add(leftHud).expandX().fillX().padLeft(20f).padRight(50f);
         battleHudRow.add(timerLabel).width(120).center();
-        battleHudRow.add(rightHud).expandX().fillX().padRight(20f);
+        battleHudRow.add(rightHud).expandX().fillX().padLeft(50f).padRight(20f);
 
         root.add(topRow).expandX().fillX().row();
 
-        // SỬA DÒNG NÀY: Giảm .padTop(8f) xuống thành .padTop(2f) để Thanh máu ép sát vào hàng Tỉ số
+        // SỬA DÒNG NÀY: Giảm .padTop(8f) xuống thành .padTop(2f) để Thanh máu ép sát
+        // vào hàng Tỉ số
         root.add(battleHudRow).expandX().fillX().padTop(2f);
 
         stage.addActor(root);
@@ -561,13 +699,22 @@ public class PlayScreen implements Screen {
 
         // Map sự kiện cho các nút
         btnResume.addListener(new ChangeListener() {
-            @Override public void changed(ChangeEvent e, Actor a) { togglePause(); }
+            @Override
+            public void changed(ChangeEvent e, Actor a) {
+                togglePause();
+            }
         });
         btnRestart.addListener(new ChangeListener() {
-            @Override public void changed(ChangeEvent e, Actor a) { game.setScreen(new PlayScreen(game, twoPlayerMode)); }
+            @Override
+            public void changed(ChangeEvent e, Actor a) {
+                game.setScreen(new PlayScreen(game, twoPlayerMode));
+            }
         });
         btnQuit.addListener(new ChangeListener() {
-            @Override public void changed(ChangeEvent e, Actor a) { game.setScreen(new MainMenuScreen(game)); }
+            @Override
+            public void changed(ChangeEvent e, Actor a) {
+                game.setScreen(new MainMenuScreen(game));
+            }
         });
 
         // 4. Lắp ráp bảng gỗ trung tâm
@@ -575,7 +722,8 @@ public class PlayScreen implements Screen {
 
         // Load trực tiếp panel_wood.png
         if (Gdx.files.internal("panel_wood.png").exists()) {
-            if (pausePanelTexture != null) pausePanelTexture.dispose();
+            if (pausePanelTexture != null)
+                pausePanelTexture.dispose();
             pausePanelTexture = new Texture(Gdx.files.internal("panel_wood.png"));
             woodPanel.setBackground(new TextureRegionDrawable(new TextureRegion(pausePanelTexture)));
         } else {
@@ -586,7 +734,8 @@ public class PlayScreen implements Screen {
         woodPanel.defaults().width(320).height(65).padBottom(20f);
 
         // Thêm Title "TẠM DỪNG" lên đầu bảng
-        Label.LabelStyle titleStyle = new Label.LabelStyle(WoodenSkin.createUIFont(45), new Color(1.00f, 0.88f, 0.40f, 1f));
+        Label.LabelStyle titleStyle = new Label.LabelStyle(WoodenSkin.createUIFont(45),
+                new Color(1.00f, 0.88f, 0.40f, 1f));
         Label titleLabel = new Label("TẠM DỪNG", titleStyle);
         titleLabel.setAlignment(Align.center);
 
@@ -669,6 +818,7 @@ public class PlayScreen implements Screen {
         }
         player2.setMaxHpScale(hpScale);
         player2.setFacingRight(false);
+        energyProjectiles.clear();
     }
 
     // ── Texture Helpers ───────────────────────────────────────────────────────
@@ -993,7 +1143,8 @@ public class PlayScreen implements Screen {
 
     // MỚI: Hàm tạo hình ảnh nền cho Tỉ số (Badge) với viền kim loại và nền mờ
     private Texture createScoreBadgeTexture() {
-        // Dùng kỹ thuật Supersampling x3 để render hình ảnh to, sau đó thu nhỏ lại giúp nét vẽ mượt mà, không bị răng cưa
+        // Dùng kỹ thuật Supersampling x3 để render hình ảnh to, sau đó thu nhỏ lại giúp
+        // nét vẽ mượt mà, không bị răng cưa
         int sample = 3;
         int w = 160 * sample;
         int h = 54 * sample;
@@ -1009,9 +1160,11 @@ public class PlayScreen implements Screen {
         // Vẽ viền ngoài cùng màu vàng kim rực rỡ
         drawRoundedRectBorder(hi, 0, 0, w, h, radius, new Color(1f, 0.85f, 0.2f, 1f));
         // Vẽ viền trong màu đồng để tạo độ sâu 3D
-        drawRoundedRectBorder(hi, sample, sample, w - sample*2, h - sample*2, Math.max(1, radius - sample), new Color(0.8f, 0.5f, 0.1f, 1f));
+        drawRoundedRectBorder(hi, sample, sample, w - sample * 2, h - sample * 2, Math.max(1, radius - sample),
+                new Color(0.8f, 0.5f, 0.1f, 1f));
         // Vẽ viền trong cùng tối màu để ép làm nổi nền chữ
-        drawRoundedRectBorder(hi, sample*2, sample*2, w - sample*4, h - sample*4, Math.max(1, radius - sample*2), new Color(0.3f, 0.15f, 0.05f, 1f));
+        drawRoundedRectBorder(hi, sample * 2, sample * 2, w - sample * 4, h - sample * 4,
+                Math.max(1, radius - sample * 2), new Color(0.3f, 0.15f, 0.05f, 1f));
 
         Pixmap pm = downsamplePixmap(hi, sample);
         hi.dispose();
