@@ -25,6 +25,7 @@ import com.stickman.fighting.MyFightingGame;
 import com.stickman.fighting.utils.Constants;
 import com.stickman.fighting.utils.GameSettings;
 import com.stickman.fighting.utils.SoundManager;
+import com.stickman.fighting.utils.I18n;
 import com.stickman.fighting.utils.UiQaConfig;
 
 /**
@@ -50,14 +51,14 @@ import com.stickman.fighting.utils.UiQaConfig;
  */
 public class SettingScreen implements Screen {
 
-    private static final float TIME_SELECT_BOX_WIDTH = 228f;
-    private static final float LANG_SELECT_BOX_WIDTH = 228f;
+    private static final float TIME_SELECT_BOX_WIDTH = 250f;
+    private static final float LANG_SELECT_BOX_WIDTH = 250f;
     private static final float SELECT_BOX_HEIGHT = 50f;
     private static final float PANEL_WIDTH = 616f; // 560 * 1.10
     private static final int PANEL_TEXTURE_HEIGHT = 462; // 420 * 1.10
     private static final float CONTENT_ROW_WIDTH = PANEL_WIDTH * 0.92f; // shrink inner bars by 8%
-    private static final float LABEL_COL_WIDTH = 210f;
-    private static final float CONTROL_COL_WIDTH = 238f;
+    private static final float LABEL_COL_WIDTH = 196f;
+    private static final float CONTROL_COL_WIDTH = 260f;
     private static final float VALUE_COL_WIDTH = 68f;
 
     // ── Dependencies ──────────────────────────────────────────────────────────
@@ -178,6 +179,7 @@ public class SettingScreen implements Screen {
 
     @Override
     public void hide() {
+        dispose();
     }
 
     @Override
@@ -231,7 +233,7 @@ public class SettingScreen implements Screen {
         header.setBackground(new TextureRegionDrawable(new TextureRegion(panelHeaderTexture)));
         header.pad(14, 20, 14, 16);
 
-        Label title = new Label("CÀI ĐẶT", skin, "header");
+        Label title = new Label(I18n.get("CÀI ĐẶT"), skin, "header");
         title.setAlignment(Align.left);
 
         // Nút đóng theo tông gỗ/cổ điển để đồng bộ toàn bộ panel.
@@ -390,7 +392,7 @@ public class SettingScreen implements Screen {
     private Table buildVolumeRow() {
         Table row = buildRowBase(true);
 
-        Label label = new Label("Âm thanh", skin, "rowLabel");
+        Label label = new Label(I18n.get("Âm thanh"), skin, "rowLabel");
         row.add(label).width(LABEL_COL_WIDTH).left();
 
         // Slider âm lượng (0 → 1)
@@ -448,32 +450,30 @@ public class SettingScreen implements Screen {
     private Table buildTimeRow() {
         Table row = buildRowBase(false);
 
-        Label label = new Label("Thời gian", skin, "rowLabel");
+        Label label = new Label(I18n.get("Thời gian"), skin, "rowLabel");
         row.add(label).width(LABEL_COL_WIDTH).left();
 
         Array<String> timeOptions = new Array<>();
-        timeOptions.add("60 giây");
-        timeOptions.add("120 giây");
-        timeOptions.add("180 giây");
+        timeOptions.add("60 " + I18n.get("giây"));
+        timeOptions.add("120 " + I18n.get("giây"));
+        timeOptions.add("180 " + I18n.get("giây"));
 
         selectTime = new SelectBox<>(skin, "setting-time");
         selectTime.setItems(timeOptions);
 
         switch (settings.getRoundTime()) {
-            case 120 -> selectTime.setSelected("120 giây");
-            case 180 -> selectTime.setSelected("180 giây");
-            default -> selectTime.setSelected("60 giây");
+            case 120 -> selectTime.setSelected("120 " + I18n.get("giây"));
+            case 180 -> selectTime.setSelected("180 " + I18n.get("giây"));
+            default -> selectTime.setSelected("60 " + I18n.get("giây"));
         }
 
         selectTime.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
                 String sel = selectTime.getSelected();
-                int time = switch (sel) {
-                    case "120 giây" -> 120;
-                    case "180 giây" -> 180;
-                    default -> 60;
-                };
+                int time = 60;
+                if (sel.startsWith("120")) time = 120;
+                else if (sel.startsWith("180")) time = 180;
                 settings.setRoundTime(time);
             }
         });
@@ -494,7 +494,7 @@ public class SettingScreen implements Screen {
     private Table buildLanguageRow() {
         Table row = buildRowBase(true);
 
-        Label label = new Label("Ngôn ngữ", skin, "rowLabel");
+        Label label = new Label(I18n.get("Ngôn ngữ"), skin, "rowLabel");
         row.add(label).width(LABEL_COL_WIDTH).left();
 
         Array<String> langOptions = new Array<>();
@@ -514,8 +514,15 @@ public class SettingScreen implements Screen {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
                 String sel = selectLang.getSelected();
-                settings.setLanguage("English".equals(sel) ? "English" : "Vietnamese");
-                // TODO: Trigger i18n reload sau khi có hệ thống đa ngôn ngữ
+                String newLang = "English".equals(sel) ? "English" : "Vietnamese";
+                if (!newLang.equals(settings.getLanguage())) {
+                    settings.setLanguage(newLang);
+                    settings.save();
+                    
+                    // Reload screen to apply new i18n texts
+                    SettingScreen newScreen = new SettingScreen(game, previousScreen);
+                    game.setScreen(newScreen);
+                }
             }
         });
 
@@ -535,7 +542,7 @@ public class SettingScreen implements Screen {
     private Table buildHpRow() {
         Table row = buildRowBase(false);
 
-        Label label = new Label("Thanh máu", skin, "rowLabel");
+        Label label = new Label(I18n.get("Thanh máu"), skin, "rowLabel");
         row.add(label).width(LABEL_COL_WIDTH).left();
 
         // Slider HP scale (1.0 → 3.0, bước 0.1)
@@ -679,7 +686,6 @@ public class SettingScreen implements Screen {
     private void finalizeClose() {
         settings.save();
         game.setScreen(previousScreen);
-        dispose();
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

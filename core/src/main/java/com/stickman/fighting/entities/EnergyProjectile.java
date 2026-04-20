@@ -57,6 +57,10 @@ public class EnergyProjectile {
         return active && bounds.overlaps(target.getBounds());
     }
 
+    public float getX() {
+        return x;
+    }
+
     public Fighter getOwner() {
         return owner;
     }

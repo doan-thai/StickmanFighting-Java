@@ -71,6 +71,13 @@ public class ParticleSystem {
      * Gọi mỗi frame từ PlayScreen.update().
      */
     public void update(float delta) {
+        // [CÁCH SỬA LỖI LAG]: Xử lý tràn mảng (Memory Leak Safe-guard)
+        // Nếu số lượng Effect vượt quá ngưỡng an toàn (ví dụ: 100), ép xóa các effect cũ nhất
+        while (activeEffects.size() > 100) {
+            ParticleEffect oldest = activeEffects.remove(0);
+            pool.free(oldest);
+        }
+
         Iterator<ParticleEffect> it = activeEffects.iterator();
         while (it.hasNext()) {
             ParticleEffect effect = it.next();

@@ -22,6 +22,7 @@ import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.stickman.fighting.MyFightingGame;
 import com.stickman.fighting.ui.WoodenSkin;
+import com.stickman.fighting.utils.I18n;
 import com.stickman.fighting.utils.Constants;
 
 /**
@@ -137,7 +138,7 @@ public class MainMenuScreen implements Screen {
         table.add(titleLabel).width(860).height(120).padBottom(56).row();
 
         // --- Nút BẮT ĐẦU (to nhất, ở giữa) ---
-        TextButton btnStart = new TextButton("BẮT ĐẦU", skin, "primary");
+        TextButton btnStart = new TextButton(I18n.get("BẮT ĐẦU"), skin, "primary");
         btnStart.getColor().a = 0f;
         btnStart.addListener(new ChangeListener() {
             @Override
@@ -154,9 +155,9 @@ public class MainMenuScreen implements Screen {
         Table bottomRow = new Table();
         bottomRow.getColor().a = 0f;
 
-        btn1P = new TextButton("1 PLAYER", skin, "light");
-        btn2P = new TextButton("2 PLAYER", skin, "light");
-        TextButton btnGuide = new TextButton("HƯỚNG DẪN", skin, "light");
+        btn1P = new TextButton(I18n.get("1 PLAYER"), skin, "light");
+        btn2P = new TextButton(I18n.get("2 PLAYER"), skin, "light");
+        TextButton btnGuide = new TextButton(I18n.get("HƯỚNG DẪN"), skin, "light");
 
         modeDefaultStyle = new TextButton.TextButtonStyle(
             skin.get("light", TextButton.TextButtonStyle.class));

@@ -30,6 +30,7 @@ import com.stickman.fighting.ui.WoodenSkin;
 import com.stickman.fighting.utils.Constants;
 import com.stickman.fighting.utils.GameSettings;
 import com.stickman.fighting.utils.SoundManager;
+import com.stickman.fighting.utils.I18n;
 import java.util.ArrayDeque;
 
 /**
@@ -87,6 +88,7 @@ public class PlayScreen implements Screen {
     private Texture pausePanelTexture;
     private Texture pauseIconTexture;
     private Texture dimOverlayTexture;
+    private Texture emptyKnobTexture;
 
     // ── Attack tracking (SFX) ─────────────────────────────────────────────────
     private boolean player1WasAttacking = false;
@@ -140,6 +142,11 @@ public class PlayScreen implements Screen {
 
     @Override
     public void render(float delta) {
+        // [CÁCH SỬA LỖI LAG]: Ngăn "Spiral of Death" khi game bị khựng
+        // Ép delta tối đa chỉ bằng 0.05 giây (tương đương 20 FPS).
+        // Nếu lag hơn, game sẽ chạy chậm lại thay vì nhảy cóc và gây tràn RAM.
+        float safeDelta = Math.min(delta, 0.05f);
+
         // ESC → toggle pause (Chỉ cho phép bấm Pause khi trận đấu chưa kết thúc)
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE) && !isGameOver) {
             togglePause();
@@ -147,19 +154,17 @@ public class PlayScreen implements Screen {
 
         // Chỉ update game logic (đánh nhau) khi không pause và chưa game over
         if (!paused && !isGameOver) {
-            update(delta);
+            update(safeDelta); // DÙNG safeDelta thay vì delta
         }
 
-        // Vẫn cập nhật HUD (để thanh máu tụt mượt mà) và Particle (máu/bụi bay) khi
-        // Game Over
+        // Vẫn cập nhật HUD (để thanh máu tụt mượt mà) và Particle (máu/bụi bay) khi Game Over
         if (isGameOver) {
             updateHUD();
-            ParticleSystem.getInstance().update(delta);
+            ParticleSystem.getInstance().update(safeDelta); // DÙNG safeDelta thay vì delta
         }
 
         draw();
     }
-
     @Override
     public void resize(int w, int h) {
         stage.getViewport().update(w, h, true);
@@ -205,6 +210,8 @@ public class PlayScreen implements Screen {
             pauseIconTexture.dispose();
         if (dimOverlayTexture != null)
             dimOverlayTexture.dispose();
+        if (emptyKnobTexture != null)
+            emptyKnobTexture.dispose();
         ParticleSystem.getInstance().clear();
     }
 
@@ -367,18 +374,18 @@ public class PlayScreen implements Screen {
         // Chữ Tiêu đề KẾT THÚC
         Label.LabelStyle titleStyle = new Label.LabelStyle(WoodenSkin.createUIFont(50),
                 new Color(1.00f, 0.85f, 0.20f, 1f));
-        Label titleLabel = new Label("KẾT THÚC", titleStyle);
+        Label titleLabel = new Label(I18n.get("KẾT THÚC"), titleStyle);
         titleLabel.setAlignment(Align.center);
 
         // Chữ Người thắng
-        String winText = "HÒA NHAU!";
+        String winText = I18n.get("HÒA NHAU!");
         if (winnerIndex != 0) {
             if (!twoPlayerMode) {
                 // Chế độ 1 người chơi (Đấu với máy)
-                winText = (winnerIndex == 1) ? "NGƯỜI CHƠI THẮNG !" : "MÁY THẮNG !";
+                winText = (winnerIndex == 1) ? I18n.get("NGƯỜI CHƠI THẮNG !") : I18n.get("MÁY THẮNG !");
             } else {
                 // Chế độ 2 người chơi
-                winText = "NGƯỜI CHƠI " + winnerIndex + " THẮNG!";
+                winText = I18n.get("NGƯỜI CHƠI ") + winnerIndex + I18n.get(" THẮNG!");
             }
         }
 
@@ -395,8 +402,8 @@ public class PlayScreen implements Screen {
         scoreLabel.setAlignment(Align.center);
 
         // Nút bấm
-        TextButton btnRematch = new TextButton("ĐẤU LẠI", skin, "restart");
-        TextButton btnBack = new TextButton("VỀ MENU", skin, "quit");
+        TextButton btnRematch = new TextButton(I18n.get("ĐẤU LẠI"), skin, "restart");
+        TextButton btnBack = new TextButton(I18n.get("VỀ MENU"), skin, "quit");
 
         btnRematch.addListener(new ChangeListener() {
             @Override
@@ -510,16 +517,25 @@ public class PlayScreen implements Screen {
             EnergyProjectile projectile = it.next();
             projectile.update(delta);
 
+            // Chặn đạn bay ra khỏi màn hình
+            if (projectile.getX() < -200 || projectile.getX() > Constants.SCREEN_WIDTH + 200) {
+                projectile.deactivate();
+            }
+
             if (!projectile.isActive()) {
                 it.remove();
                 continue;
             }
 
             Fighter target = projectile.getOwner() == player1 ? player2 : player1;
+            // KHI QUẢ CẦU TRÚNG ĐÍCH
             if (!target.isDead() && projectile.hits(target)) {
                 target.receiveHit(projectile.getDamage());
                 projectile.deactivate();
                 it.remove();
+
+                // [THÊM DÒNG NÀY VÀO ĐÂY] Phát tiếng nổ khi trúng địch
+                SoundManager.getInstance().playSound(SoundManager.SoundEffect.ENERGY_HIT);
             }
         }
     }
@@ -689,9 +705,9 @@ public class PlayScreen implements Screen {
         // 3. SỬ DỤNG CÁC STYLE CÓ SẴN TỪ WOODENSKIN (Khác màu, có bo góc)
         // "primary": Thường là màu nổi bật (Xanh dương/Xanh lá)
         // Đổi "primary", "light" và "danger" thành các style chuẩn dưới đây:
-        TextButton btnResume = new TextButton("TIẾP TỤC", skin, "resume");
-        TextButton btnRestart = new TextButton("CHƠI LẠI", skin, "restart");
-        TextButton btnQuit = new TextButton("THOÁT", skin, "quit");
+        TextButton btnResume = new TextButton(I18n.get("TIẾP TỤC"), skin, "resume");
+        TextButton btnRestart = new TextButton(I18n.get("CHƠI LẠI"), skin, "restart");
+        TextButton btnQuit = new TextButton(I18n.get("THOÁT"), skin, "quit");
         // Scale nhẹ chữ lên 10% để cân đối với kích thước to của nút
         btnResume.getLabel().setFontScale(1.1f);
         btnRestart.getLabel().setFontScale(1.1f);
@@ -736,7 +752,7 @@ public class PlayScreen implements Screen {
         // Thêm Title "TẠM DỪNG" lên đầu bảng
         Label.LabelStyle titleStyle = new Label.LabelStyle(WoodenSkin.createUIFont(45),
                 new Color(1.00f, 0.88f, 0.40f, 1f));
-        Label titleLabel = new Label("TẠM DỪNG", titleStyle);
+        Label titleLabel = new Label(I18n.get("TẠM DỪNG"), titleStyle);
         titleLabel.setAlignment(Align.center);
 
         woodPanel.add(titleLabel).padBottom(30).row();
@@ -849,11 +865,13 @@ public class PlayScreen implements Screen {
             hpBarP2Texture = fillTex;
 
         // Tạo cục knob tàng hình (chỉ cần tạo 1 lần)
-        Pixmap knobPm = new Pixmap(1, 24, Pixmap.Format.RGBA8888);
-        knobPm.setColor(Color.CLEAR);
-        knobPm.fill();
-        Texture knobTex = new Texture(knobPm);
-        knobPm.dispose();
+        if (emptyKnobTexture == null) {
+            Pixmap knobPm = new Pixmap(1, 24, Pixmap.Format.RGBA8888);
+            knobPm.setColor(Color.CLEAR);
+            knobPm.fill();
+            emptyKnobTexture = new Texture(knobPm);
+            knobPm.dispose();
+        }
 
         TextureRegionDrawable bgDrawable = new TextureRegionDrawable(new TextureRegion(hpBgTexture));
         bgDrawable.setMinHeight(24f);
@@ -863,7 +881,7 @@ public class PlayScreen implements Screen {
         fillDrawable.setMinHeight(24f);
         fillDrawable.setMinWidth(0f);
 
-        TextureRegionDrawable emptyKnob = new TextureRegionDrawable(new TextureRegion(knobTex));
+        TextureRegionDrawable emptyKnob = new TextureRegionDrawable(new TextureRegion(emptyKnobTexture));
         emptyKnob.setMinHeight(24f);
         emptyKnob.setMinWidth(0f);
 
