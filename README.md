@@ -1,66 +1,68 @@
-# stickman-fighting
+# 🥋 Stickman Fighting: AI Battleground
 
-A [libGDX](https://libgdx.com/) project generated with [gdx-liftoff](https://github.com/libgdx/gdx-liftoff).
+Dự án trò chơi đối kháng 2D sử dụng ngôn ngữ **Java** và framework **libGDX**. Điểm nổi bật của trò chơi là hệ thống điều khiển nhân vật máy (Bot) thông qua **Máy trạng thái hữu hạn (Finite State Machine - FSM)**, mang lại trải nghiệm chiến đấu thông minh và tự nhiên.
 
-This project was generated with a template including simple application launchers and an `ApplicationAdapter` extension that draws libGDX logo.
+---
 
-## Platforms
+## 🎮 Tính năng chính
 
-- `core`: Main module with the application logic shared by all platforms.
-- `lwjgl3`: Primary desktop platform using LWJGL3; was called 'desktop' in older docs.
+*   **🤖 Hệ thống AI thông minh**: Bot có khả năng phân tích khoảng cách, quản lý tài nguyên và phản xạ dựa trên hành động của người chơi (với độ trễ phản ứng tùy chỉnh theo độ khó).
+*   **⚔️ Cơ chế chiến đấu đa dạng**: Bao gồm đấm (Punch), đá (Kick), nhảy và kỹ năng đặc biệt (Energy Skill).
+*   **✨ Đồ họa & Hiệu ứng**: Sử dụng hệ thống hạt (Particle System) cho các đòn đánh và âm thanh sống động cho từng tương tác.
 
-## Gradle
+---
 
-This project uses [Gradle](https://gradle.org/) to manage dependencies.
-The Gradle wrapper was included, so you can run Gradle tasks using `gradlew.bat` or `./gradlew` commands.
-Useful Gradle tasks and flags:
+## 🛠 Yêu cầu hệ thống
 
-- `--continue`: when using this flag, errors will not stop the tasks from running.
-- `--daemon`: thanks to this flag, Gradle daemon will be used to run chosen tasks.
-- `--offline`: when using this flag, cached dependency archives will be used.
-- `--refresh-dependencies`: this flag forces validation of all dependencies. Useful for snapshot versions.
-- `build`: builds sources and archives of every project.
-- `cleanEclipse`: removes Eclipse project data.
-- `cleanIdea`: removes IntelliJ project data.
-- `clean`: removes `build` folders, which store compiled classes and built archives.
-- `eclipse`: generates Eclipse project data.
-- `idea`: generates IntelliJ project data.
-- `lwjgl3:jar`: builds application's runnable jar, which can be found at `lwjgl3/build/libs`.
-- `lwjgl3:run`: starts the application.
-- `lwjgl3:runUiQa`: starts the app in SettingScreen UI QA mode (layout checks + auto screenshot).
-- `test`: runs unit tests (if any).
+Để chạy dự án này, máy tính của bạn cần cài đặt sẵn:
 
-Note that most tasks that are not specific to a single project can be run with `name:` prefix, where the `name` should be replaced with the ID of a specific project.
-For example, `core:clean` removes `build` folder only from the `core` project.
+*   **Java Development Kit (JDK)**: Phiên bản 17 trở lên.
+*   **Gradle**: (Đã được tích hợp sẵn qua Gradle Wrapper trong dự án).
+*   **IDE (Khuyên dùng)**: IntelliJ IDEA Ultimate hoặc VS Code (có cài Extension Pack for Java).
 
-## Automated UI QA (SettingScreen)
+---
 
-Use this mode when tuning UI quickly and safely. It will auto-open the settings screen,
-run layout assertions, save a screenshot, then exit.
+## 🚀 Hướng dẫn cài đặt và Chạy code
 
-Command:
+### 1. Clone dự án
 
-```
-./gradlew lwjgl3:runUiQa
+Mở terminal và chạy lệnh sau để tải mã nguồn về máy:
+
+```bash
+git clone https://github.com/doan-thai/stickmanfighting-java.git
+cd stickmanfighting-java
 ```
 
-On Windows:
+### 2. Cài đặt môi trường
 
+**Với IntelliJ IDEA:**
+1. Chọn `File -> Open` và trỏ đến thư mục dự án.
+2. Đợi IDE tự động tải các dependencies từ file `build.gradle`.
+3. Cấu hình SDK (JDK 17) trong `Project Structure`.
+
+**Với VS Code:**
+1. Mở thư mục dự án.
+2. VS Code sẽ tự động nhận diện dự án Gradle và build các thành phần cần thiết.
+
+### 3. Chạy trò chơi
+
+Bạn có thể chạy trực tiếp từ terminal bằng lệnh:
+
+**Trên Windows:**
+```cmd
+gradlew.bat lwjgl3:run
 ```
-.\gradlew.bat lwjgl3:runUiQa
+
+**Trên Linux/macOS:**
+```bash
+./gradlew lwjgl3:run
 ```
+*(Lưu ý: Module `lwjgl3` là launcher dành cho phiên bản máy tính để bàn)*
 
-Output:
+---
 
-- Screenshot files are written to `assets/qa-artifacts/`.
-- Layout warnings (if any) are logged with the `UI-QA` tag.
+## 📂 Cấu trúc dự án
 
-Optional flags (can be passed as JVM system properties or env vars):
-
-- `ui.qa` / `UI_QA`
-- `ui.qa.openSettings` / `UI_QA_OPEN_SETTINGS`
-- `ui.qa.checkLayout` / `UI_QA_CHECK_LAYOUT`
-- `ui.qa.captureScreenshot` / `UI_QA_CAPTURE_SCREENSHOT`
-- `ui.qa.exitAfterShot` / `UI_QA_EXIT_AFTER_SHOT`
-- `ui.qa.screenshotDelayFrames` / `UI_QA_SCREENSHOT_DELAY_FRAMES`
-- `ui.qa.outputDir` / `UI_QA_OUTPUT_DIR`
+*   📁 **`core/`**: Chứa mã nguồn chính của trò chơi (Logic AI, Entities, Screens).
+*   📁 **`lwjgl3/`**: Chứa mã nguồn launcher cho Desktop (sử dụng thư viện LWJGL3).
+*   📁 **`assets/`**: Chứa hình ảnh, âm thanh và font chữ sử dụng trong game.
