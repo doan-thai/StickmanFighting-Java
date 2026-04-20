@@ -4,6 +4,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.files.FileHandle;
+import com.badlogic.gdx.math.MathUtils;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -14,20 +15,20 @@ import java.util.Map;
  * SoundManager — Singleton quản lý toàn bộ âm thanh game.
  *
  * Phân biệt 2 loại:
- *  - Sound  : SFX ngắn (<2s), load vào RAM, gọi nhiều lần đồng thời được.
- *  - Music  : Nhạc nền dài, stream từ file, chỉ 1 track active tại 1 thời điểm.
+ * - Sound  : SFX ngắn (<2s), load vào RAM, gọi nhiều lần đồng thời được.
+ * - Music  : Nhạc nền dài, stream từ file, chỉ 1 track active tại 1 thời điểm.
  *
  * Cách dùng:
- *   SoundManager.getInstance().playSound(SoundEffect.PUNCH);
- *   SoundManager.getInstance().playMusic(MusicTrack.BATTLE);
- *   SoundManager.getInstance().setVolume(0.8f);
+ * SoundManager.getInstance().playSound(SoundEffect.PUNCH);
+ * SoundManager.getInstance().playMusic(MusicTrack.BATTLE);
+ * SoundManager.getInstance().setVolume(0.8f);
  */
 public class SoundManager {
 
     // ── Enum định nghĩa các âm thanh ──────────────────────────────────────────
 
     public enum SoundEffect {
-        PUNCH, KICK, HIT_RECEIVE, JUMP, KO, ROUND_START, BUTTON_CLICK
+        PUNCH, KICK, HIT_RECEIVE, JUMP, KO, ROUND_START, BUTTON_CLICK, ENERGY_HIT
     }
 
     public enum MusicTrack {
@@ -49,9 +50,9 @@ public class SoundManager {
     private Music   currentMusic      = null;
     private MusicTrack currentTrack   = null;
 
-    private float masterVolume  = 0.8f; // 0.0 – 1.0
-    private float musicVolume   = 0.5f; // Nhạc nền thấp hơn SFX
-    private float sfxVolume     = 1.0f;
+    private float masterVolume  = 1.0f; // Để mặc định là 100%
+    private float musicVolume   = 1.0f; // Cho nhạc to lên bằng SFX
+    private float sfxVolume     = 0.5f; // Giảm nhẹ SFX để không bị chói tai
 
     private boolean initialized = false;
 
@@ -69,19 +70,29 @@ public class SoundManager {
         // Sync volume từ settings
         masterVolume = GameSettings.getInstance().getVolume();
 
-        // Load SFX
-        loadSound(SoundEffect.PUNCH,        SoundGenerator.generatePunch());
-        loadSound(SoundEffect.KICK,         SoundGenerator.generateKick());
-        loadSound(SoundEffect.HIT_RECEIVE,  SoundGenerator.generateHitReceive());
-        loadSound(SoundEffect.JUMP,         SoundGenerator.generateJump());
-        loadSound(SoundEffect.KO,           SoundGenerator.generateKO());
-        loadSound(SoundEffect.ROUND_START,  SoundGenerator.generateRoundStart());
-        loadSound(SoundEffect.BUTTON_CLICK, SoundGenerator.generateButtonClick());
+        // 1. LOAD SFX (Hiệu ứng âm thanh ngắn)
+        try {
+            // Tải tiếng vung tay/chân 1 lần, dùng chung cho cả ĐẤM và ĐÁ
+            Sound swingSound = Gdx.audio.newSound(Gdx.files.internal("audio/sfx/swoosh.wav"));
+            sounds.put(SoundEffect.PUNCH, swingSound);
+            sounds.put(SoundEffect.KICK, swingSound);
 
-        // Load Music (stream từ WAV tạm)
-        loadMusic(MusicTrack.MENU,      SoundGenerator.generateMenuMusic());
-        loadMusic(MusicTrack.BATTLE,    SoundGenerator.generateBattleMusic());
-        loadMusic(MusicTrack.GAME_OVER, SoundGenerator.generateGameOverMusic());
+            // Tải các hiệu ứng còn lại
+            sounds.put(SoundEffect.HIT_RECEIVE, Gdx.audio.newSound(Gdx.files.internal("audio/sfx/hit.wav")));
+            sounds.put(SoundEffect.JUMP, Gdx.audio.newSound(Gdx.files.internal("audio/sfx/jump.wav")));
+            sounds.put(SoundEffect.ENERGY_HIT, Gdx.audio.newSound(Gdx.files.internal("audio/sfx/energy_hit.wav")));
+
+        } catch (Exception e) {
+            Gdx.app.error("SoundManager", "Lỗi khi load SFX: " + e.getMessage());
+        }
+
+        // 2. LOAD MUSIC (Nhạc nền dài) - Chú ý file của bạn là .wav
+        try {
+            music.put(MusicTrack.MENU, Gdx.audio.newMusic(Gdx.files.internal("audio/music/menu_bgm.wav")));
+            music.put(MusicTrack.BATTLE, Gdx.audio.newMusic(Gdx.files.internal("audio/music/battle_bgm.wav")));
+        } catch (Exception e) {
+            Gdx.app.error("SoundManager", "Lỗi khi load Music: " + e.getMessage());
+        }
 
         initialized = true;
         Gdx.app.log("SoundManager", "Initialized — "
@@ -90,55 +101,45 @@ public class SoundManager {
 
     // ── Playback API ──────────────────────────────────────────────────────────
 
-    /**
-     * Phát SFX. Thread-safe, có thể gọi đồng thời nhiều lần.
-     * @param effect Loại SFX
-     */
     public void playSound(SoundEffect effect) {
-        if (!initialized) return;
-        Sound s = sounds.get(effect);
-        if (s == null) return;
-        float finalVol = masterVolume * sfxVolume;
-        s.play(finalVol);
+        Sound sound = sounds.get(effect);
+        if (sound != null) {
+            sound.play(masterVolume * sfxVolume);
+        }
     }
 
-    /**
-     * Phát SFX với pitch tùy chỉnh (dùng cho variation — tránh nhàm).
-     * @param effect Loại SFX
-     * @param pitch  0.5 (chậm/trầm) → 2.0 (nhanh/cao), 1.0 = bình thường
-     */
-    public void playSoundWithVariation(SoundEffect effect, float pitch) {
-        if (!initialized) return;
-        Sound s = sounds.get(effect);
-        if (s == null) return;
-        float finalVol = masterVolume * sfxVolume;
-        // Thêm random nhỏ vào pitch để đòn đánh không bị lặp y hệt
-        float randomPitch = pitch + (float)(Math.random() * 0.2 - 0.1);
-        s.play(finalVol, randomPitch, 0f); // vol, pitch, pan
+    public void playSoundWithVariation(SoundEffect effect, float basePitch) {
+        Sound sound = sounds.get(effect);
+        if (sound != null) {
+            long id = sound.play(masterVolume * sfxVolume);
+            float pitch = basePitch + (MathUtils.random(-0.1f, 0.1f));
+            sound.setPitch(id, pitch);
+        }
     }
 
-    /**
-     * Phát nhạc nền. Tự dừng track cũ trước khi phát track mới.
-     * @param track   Track cần phát
-     * @param looping Có loop không (nhạc menu/battle = true, gameover = false)
-     */
+    /** Phát nhạc nền có tùy chọn Loop */
     public void playMusic(MusicTrack track, boolean looping) {
-        if (!initialized) return;
-        if (track == currentTrack && currentMusic != null
-            && currentMusic.isPlaying()) return; // Đang phát rồi, bỏ qua
+        if (currentTrack == track) {
+            // Nếu nhạc đang phát chính là track này thì chỉ cần đảm bảo nó đang chạy
+            if (currentMusic != null && !currentMusic.isPlaying()) currentMusic.play();
+            return;
+        }
 
-        // Dừng track hiện tại (fade out nhanh)
         stopMusic();
 
         Music m = music.get(track);
-        if (m == null) return;
+        if (m != null) {
+            currentMusic = m;
+            currentTrack = track;
 
-        m.setLooping(looping);
-        m.setVolume(masterVolume * musicVolume);
-        m.play();
+            // Thiết lập âm lượng dựa trên cả Master và Music volume
+            currentMusic.setVolume(masterVolume * musicVolume);
 
-        currentMusic = m;
-        currentTrack = track;
+            // ÉP BUỘC lặp lại ở đây
+            currentMusic.setLooping(looping);
+
+            currentMusic.play();
+        }
     }
 
     /** Overload tiện lợi — loop mặc định true */
@@ -210,52 +211,5 @@ public class SoundManager {
         initialized = false;
         instance    = null;
         Gdx.app.log("SoundManager", "Disposed.");
-    }
-
-    // ── Private Loaders ───────────────────────────────────────────────────────
-
-    private void loadSound(SoundEffect effect, byte[] pcmData) {
-        try {
-            FileHandle fh = writeTempWav(pcmData, effect.name().toLowerCase());
-            if (fh != null) {
-                Sound s = Gdx.audio.newSound(fh);
-                if (s != null) sounds.put(effect, s);
-            }
-        } catch (Exception e) {
-            Gdx.app.error("SoundManager",
-                "Failed to load SFX " + effect + ": " + e.getMessage());
-        }
-    }
-
-    private void loadMusic(MusicTrack track, byte[] pcmData) {
-        try {
-            FileHandle fh = writeTempWav(pcmData, "music_" + track.name().toLowerCase());
-            if (fh != null) {
-                Music m = Gdx.audio.newMusic(fh);
-                if (m != null) music.put(track, m);
-            }
-        } catch (Exception e) {
-            Gdx.app.error("SoundManager",
-                "Failed to load Music " + track + ": " + e.getMessage());
-        }
-    }
-
-    /**
-     * Ghi byte[] PCM thành file WAV tạm trong system temp dir.
-     * File tự xóa khi JVM tắt.
-     */
-    private FileHandle writeTempWav(byte[] pcmData, String name) {
-        try {
-            File tempFile = File.createTempFile("stickman_" + name + "_", ".wav");
-            tempFile.deleteOnExit();
-            byte[] wav = SoundGenerator.wrapPcmInWav(pcmData);
-            try (FileOutputStream fos = new FileOutputStream(tempFile)) {
-                fos.write(wav);
-            }
-            return Gdx.files.absolute(tempFile.getAbsolutePath());
-        } catch (Exception e) {
-            Gdx.app.error("SoundManager", "writeTempWav failed: " + e.getMessage());
-            return null;
-        }
     }
 }

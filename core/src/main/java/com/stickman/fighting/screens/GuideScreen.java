@@ -26,6 +26,7 @@ import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.stickman.fighting.MyFightingGame;
 import com.stickman.fighting.ui.WoodenSkin;
 import com.stickman.fighting.utils.Constants;
+import com.stickman.fighting.utils.I18n;
 import com.stickman.fighting.utils.SoundManager;
 
 public class GuideScreen implements Screen {
@@ -121,11 +122,11 @@ public class GuideScreen implements Screen {
         root.setFillParent(true);
         root.top().pad(28f, 12f, 12f, 12f);
 
-        Label title = new Label("HƯỚNG DẪN CHƠI", skin, "guideTitle");
+        Label title = new Label(I18n.get("HƯỚNG DẪN CHƠI"), skin, "guideTitle");
         title.setAlignment(Align.center);
 
         Label subtitle = new Label(
-                "Đọc nhanh điều khiển và mẹo giao tranh trước khi vào trận.",
+                I18n.get("Đọc nhanh điều khiển và mẹo giao tranh trước khi vào trận."),
                 skin,
                 "guideSubtitle");
         subtitle.setAlignment(Align.center);
@@ -140,20 +141,15 @@ public class GuideScreen implements Screen {
         Table leftCol = new Table();
         leftCol.top();
         leftCol.add(makeGuideCard(
-                "MỤC TIÊU TRẬN ĐẤU",
-                "- Đánh bại đối thủ bằng cách đưa máu về 0.\n"
-                        + "- Hết giờ: bên nhiều máu hơn sẽ thắng.\n"
-                        + "- Nếu bằng máu khi hết giờ: kết quả hòa.",
+                I18n.get("MỤC TIÊU TRẬN ĐẤU"),
+                I18n.get("- Đánh bại đối thủ bằng cách đưa máu về 0.\n- Hết giờ: bên nhiều máu hơn sẽ thắng.\n- Nếu bằng máu khi hết giờ: kết quả hòa."),
                 new Color(1.00f, 0.67f, 0.18f, 1f),
                 474,
                 174)).width(474f).height(174f).padBottom(10f).row();
 
         leftCol.add(makeGuideCard(
-                "ĐIỀU KHIỂN NGƯỜI CHƠI 2",
-                "- Mũi tên trái/phải: Di chuyển.\n"
-                        + "- Mũi tên lên: Nhảy.\n"
-                        + "- Num4: Đỡ, Num5: Đấm, Num6: Đá.\n"
-                        + "- Num4 + Num5: Energy-shot, Num3: Tốc biến.",
+                I18n.get("ĐIỀU KHIỂN NGƯỜI CHƠI 2"),
+                I18n.get("- Mũi tên trái/phải: Di chuyển.\n- Mũi tên lên: Nhảy.\n- Num4: Đỡ, Num5: Đấm, Num6: Đá.\n- Num4 + Num5: Energy-shot, Num3: Tốc biến."),
                 new Color(1.00f, 0.34f, 0.34f, 1f),
                 474,
                 196)).width(474f).height(196f);
@@ -161,21 +157,15 @@ public class GuideScreen implements Screen {
         Table rightCol = new Table();
         rightCol.top();
         rightCol.add(makeGuideCard(
-                "ĐIỀU KHIỂN NGƯỜI CHƠI 1",
-                "- A/D: Di chuyển trái phải.\n"
-                        + "- W: Nhảy.\n"
-                        + "- U: Đỡ, I: Đấm, O: Đá.\n"
-                        + "- U + I: Energy-shot, L: Tốc biến.",
+                I18n.get("ĐIỀU KHIỂN NGƯỜI CHƠI 1"),
+                I18n.get("- A/D: Di chuyển trái phải.\n- W: Nhảy.\n- U: Đỡ, I: Đấm, O: Đá.\n- U + I: Energy-shot, L: Tốc biến."),
                 new Color(0.30f, 0.72f, 1.00f, 1f),
                 474,
                 184)).width(474f).height(184f).padBottom(10f).row();
 
         rightCol.add(makeGuideCard(
-                "MẸO CHƠI NHANH",
-                "- Đỡ đòn giảm sát thương nhận vào.\n"
-                        + "- Kick gây 10 damage.\n"
-                        + "- Combo 5 hit không bị đỡ sẽ knockdown.\n"
-                        + "- Energy-shot: 14 damage, cooldown 0.75s.",
+                I18n.get("MẸO CHƠI NHANH"),
+                I18n.get("- Đỡ đòn giảm sát thương nhận vào.\n- Kick gây 10 damage.\n- Combo 5 hit không bị đỡ sẽ knockdown.\n- Energy-shot: 14 damage, cooldown 0.75s."),
                 new Color(0.44f, 0.95f, 0.50f, 1f),
                 474,
                 186)).width(474f).height(186f);
@@ -185,7 +175,7 @@ public class GuideScreen implements Screen {
 
         root.add(content).expand().fill().row();
 
-        Label backHint = new Label("Nhấn ESC hoặc nút < để quay lại", skin, "guideHint");
+        Label backHint = new Label(I18n.get("Nhấn ESC hoặc nút < để quay lại"), skin, "guideHint");
         backHint.setAlignment(Align.center);
         root.add(backHint).center().padTop(8f).padBottom(2f);
 

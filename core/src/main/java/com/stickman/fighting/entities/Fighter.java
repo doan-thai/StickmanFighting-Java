@@ -122,6 +122,20 @@ public abstract class Fighter {
 
         if (isAttacking) {
             attackTimer -= delta;
+            
+            // Cập nhật vị trí attackBox theo nhân vật
+            float boxW = Constants.PUNCH_RANGE;
+            float boxH = HEIGHT * 0.5f;
+            if (currentAttackType == AttackType.KICK)
+                boxW = Constants.KICK_RANGE;
+            else if (currentAttackType == AttackType.ENERGY) {
+                boxW = Constants.ATTACK_RANGE + 28f;
+                boxH += 8f;
+            }
+            float boxX = facingRight ? position.x + WIDTH : position.x - boxW;
+            float boxY = position.y + HEIGHT * 0.25f;
+            attackBox.set(boxX, boxY, boxW, boxH);
+
             if (attackTimer <= 0f) {
                 isAttacking = false;
                 hasHitTarget = false;
@@ -154,7 +168,8 @@ public abstract class Fighter {
         if (knockdownTimer > 0f || isBlocking || stunTimer > 0f)
             return;
         velocity.x = -Constants.PLAYER_SPEED;
-        facingRight = false;
+        if (!isAttacking)
+            facingRight = false;
         if (onGround && !isAttacking)
             setAnimState(AnimState.WALK);
     }
@@ -163,7 +178,8 @@ public abstract class Fighter {
         if (knockdownTimer > 0f || isBlocking || stunTimer > 0f)
             return;
         velocity.x = Constants.PLAYER_SPEED;
-        facingRight = true;
+        if (!isAttacking)
+            facingRight = true;
         if (onGround && !isAttacking)
             setAnimState(AnimState.WALK);
     }

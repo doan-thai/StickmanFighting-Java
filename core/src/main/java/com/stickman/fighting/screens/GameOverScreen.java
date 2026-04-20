@@ -19,6 +19,7 @@ import com.stickman.fighting.utils.Constants;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.stickman.fighting.utils.I18n;
 
 /**
  * Màn hình K.O. – hiển thị người thắng và cho phép chơi lại.
@@ -90,8 +91,8 @@ public class GameOverScreen implements Screen {
 
         // Winner text
         String winText = winnerIndex == 0
-            ? "Hòa!"
-            : "Người chơi " + winnerIndex + " Thắng!";
+            ? I18n.get("Hòa!")
+            : I18n.get("Người chơi ") + winnerIndex + I18n.get(" Thắng!");
         Label winLabel = new Label(winText, skin);
         winLabel.setAlignment(Align.center);
 
@@ -99,8 +100,8 @@ public class GameOverScreen implements Screen {
         Label scoreLabel = new Label(scoreP1 + "  -  " + scoreP2, skin);
         scoreLabel.setAlignment(Align.center);
 
-        TextButton btnRematch = new TextButton("ĐẤU LẠI",  skin, "primary");
-        TextButton btnBack    = new TextButton("QUAY LẠI", skin, "light");
+        TextButton btnRematch = new TextButton(I18n.get("ĐẤU LẠI"),  skin, "primary");
+        TextButton btnBack    = new TextButton(I18n.get("QUAY LẠI"), skin, "light");
 
         btnRematch.addListener(new ChangeListener() {
             @Override public void changed(ChangeEvent e, Actor a) {
