@@ -105,7 +105,7 @@ public class GameOverScreen implements Screen {
 
         btnRematch.addListener(new ChangeListener() {
             @Override public void changed(ChangeEvent e, Actor a) {
-                game.setScreen(new PlayScreen(game, twoPlayerMode));
+                game.setScreen(new PlayScreen(game, twoPlayerMode, 3));
             }
         });
         btnBack.addListener(new ChangeListener() {

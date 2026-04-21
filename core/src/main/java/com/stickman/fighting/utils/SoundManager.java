@@ -72,24 +72,34 @@ public class SoundManager {
 
         // 1. LOAD SFX (Hiệu ứng âm thanh ngắn)
         try {
-            // Tải tiếng vung tay/chân 1 lần, dùng chung cho cả ĐẤM và ĐÁ
+            // Tải các hiệu ứng âm thanh hiện có
             Sound swingSound = Gdx.audio.newSound(Gdx.files.internal("audio/sfx/swoosh.wav"));
+            Sound hitSound = Gdx.audio.newSound(Gdx.files.internal("audio/sfx/hit.wav"));
+            Sound jumpSound = Gdx.audio.newSound(Gdx.files.internal("audio/sfx/jump.wav"));
+            Sound energyHitSound = Gdx.audio.newSound(Gdx.files.internal("audio/sfx/energy_hit.wav"));
+
+            // Gán PUNCH và KICK vào swingSound
             sounds.put(SoundEffect.PUNCH, swingSound);
             sounds.put(SoundEffect.KICK, swingSound);
 
-            // Tải các hiệu ứng còn lại
-            sounds.put(SoundEffect.HIT_RECEIVE, Gdx.audio.newSound(Gdx.files.internal("audio/sfx/hit.wav")));
-            sounds.put(SoundEffect.JUMP, Gdx.audio.newSound(Gdx.files.internal("audio/sfx/jump.wav")));
-            sounds.put(SoundEffect.ENERGY_HIT, Gdx.audio.newSound(Gdx.files.internal("audio/sfx/energy_hit.wav")));
+            // Gán các hiệu ứng khác
+            sounds.put(SoundEffect.HIT_RECEIVE, hitSound);
+            sounds.put(SoundEffect.JUMP, jumpSound);
+            sounds.put(SoundEffect.ENERGY_HIT, energyHitSound);
 
         } catch (Exception e) {
             Gdx.app.error("SoundManager", "Lỗi khi load SFX: " + e.getMessage());
         }
 
-        // 2. LOAD MUSIC (Nhạc nền dài) - Chú ý file của bạn là .wav
+        // 2. LOAD MUSIC (Nhạc nền dài)
         try {
             music.put(MusicTrack.MENU, Gdx.audio.newMusic(Gdx.files.internal("audio/music/menu_bgm.wav")));
             music.put(MusicTrack.BATTLE, Gdx.audio.newMusic(Gdx.files.internal("audio/music/battle_bgm.wav")));
+            
+            // Chỉ nạp nhạc nền Game Over nếu file thực sự tồn tại
+            if (Gdx.files.internal("audio/music/game_over_bgm.wav").exists()) {
+                music.put(MusicTrack.GAME_OVER, Gdx.audio.newMusic(Gdx.files.internal("audio/music/game_over_bgm.wav")));
+            }
         } catch (Exception e) {
             Gdx.app.error("SoundManager", "Lỗi khi load Music: " + e.getMessage());
         }
@@ -102,6 +112,7 @@ public class SoundManager {
     // ── Playback API ──────────────────────────────────────────────────────────
 
     public void playSound(SoundEffect effect) {
+        if (!initialized) return;
         Sound sound = sounds.get(effect);
         if (sound != null) {
             sound.play(masterVolume * sfxVolume);
@@ -109,6 +120,7 @@ public class SoundManager {
     }
 
     public void playSoundWithVariation(SoundEffect effect, float basePitch) {
+        if (!initialized) return;
         Sound sound = sounds.get(effect);
         if (sound != null) {
             long id = sound.play(masterVolume * sfxVolume);
@@ -119,6 +131,7 @@ public class SoundManager {
 
     /** Phát nhạc nền có tùy chọn Loop */
     public void playMusic(MusicTrack track, boolean looping) {
+        if (!initialized) return;
         if (currentTrack == track) {
             // Nếu nhạc đang phát chính là track này thì chỉ cần đảm bảo nó đang chạy
             if (currentMusic != null && !currentMusic.isPlaying()) currentMusic.play();
@@ -204,8 +217,14 @@ public class SoundManager {
 
     public void dispose() {
         stopMusic();
-        for (Sound s : sounds.values()) if (s != null) s.dispose();
-        for (Music m : music.values())  if (m != null) m.dispose();
+        
+        // Sử dụng Set để giải phóng bộ nhớ duy nhất một lần cho mỗi đối tượng (tránh lỗi double-dispose)
+        java.util.Set<Sound> uniqueSounds = new java.util.HashSet<>(sounds.values());
+        for (Sound s : uniqueSounds) if (s != null) s.dispose();
+        
+        java.util.Set<Music> uniqueMusic = new java.util.HashSet<>(music.values());
+        for (Music m : uniqueMusic) if (m != null) m.dispose();
+        
         sounds.clear();
         music.clear();
         initialized = false;

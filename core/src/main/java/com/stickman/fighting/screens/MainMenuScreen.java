@@ -53,9 +53,10 @@ public class MainMenuScreen implements Screen {
     private TextButton.TextButtonStyle modeDefaultStyle;
     private TextButton.TextButtonStyle modeSelectedStyle;
 
-    // Texture tạm (procedural background màu nâu gỗ)
     private Texture bgTexture;
     private Texture settingsIconTexture;
+    private Texture dimOverlayTexture;
+    private Table mapSelectionOverlay;
 
     public MainMenuScreen(MyFightingGame game) {
         this.game = game;
@@ -91,12 +92,12 @@ public class MainMenuScreen implements Screen {
     @Override public void resume()  {}
     @Override public void hide()    {}
 
-    @Override
     public void dispose() {
         stage.dispose();
         skin.dispose();
         if (bgTexture != null) bgTexture.dispose();
         if (settingsIconTexture != null) settingsIconTexture.dispose();
+        if (dimOverlayTexture != null) dimOverlayTexture.dispose();
     }
 
     // ── Build UI ──────────────────────────────────────────────────────────────
@@ -119,6 +120,8 @@ public class MainMenuScreen implements Screen {
 
         // --- Layer 2: Nút Settings góc phải ---
         rootStack.add(buildSettingsOverlay());
+        
+        buildMapSelectionOverlay();
     }
 
     /**
@@ -257,12 +260,85 @@ public class MainMenuScreen implements Screen {
         return btnSettings;
     }
 
+    // ── Map Selection Overlay ─────────────────────────────────────────────────
+
+    private void buildMapSelectionOverlay() {
+        mapSelectionOverlay = new Table();
+        mapSelectionOverlay.setFillParent(true);
+        mapSelectionOverlay.setVisible(false);
+
+        // Dim background
+        Pixmap dimPm = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
+        dimPm.setColor(0f, 0f, 0f, 0.75f);
+        dimPm.fill();
+        dimOverlayTexture = new Texture(dimPm);
+        dimPm.dispose();
+
+        Image dimBg = new Image(dimOverlayTexture);
+        dimBg.setFillParent(true);
+        mapSelectionOverlay.addActor(dimBg);
+
+        // Inner panel
+        Table panel = new Table();
+        Pixmap panelPm = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
+        panelPm.setColor(0.35f, 0.18f, 0.05f, 0.98f);
+        panelPm.fill();
+        Texture panelBg = new Texture(panelPm);
+        panelPm.dispose();
+        panel.setBackground(new TextureRegionDrawable(new TextureRegion(panelBg)));
+        panel.pad(30, 40, 30, 40);
+
+        Label title = new Label(I18n.get("CHỌN BẢN ĐỒ"), skin, "title");
+        title.setColor(new Color(1f, 0.85f, 0.2f, 1f));
+        panel.add(title).padBottom(30).row();
+
+        TextButton btnMap1 = new TextButton(I18n.get("Map 1 (Phẳng)"), skin, "light");
+        TextButton btnMap2 = new TextButton(I18n.get("Map 2 (4 Bục)"), skin, "light");
+        TextButton btnMap3 = new TextButton(I18n.get("Map 3 (7 Bục)"), skin, "light");
+        TextButton btnCancel = new TextButton(I18n.get("TRỞ LẠI"), skin, "quit");
+
+        ChangeListener clickListener = new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent e, Actor a) {
+                if (a == btnCancel) {
+                    mapSelectionOverlay.setVisible(false);
+                } else {
+                    boolean isMirror = selectedMode == GameMode.TWO_PLAYER;
+                    int mapId = 1;
+                    if (a == btnMap2) mapId = 2;
+                    if (a == btnMap3) mapId = 3;
+                    game.setScreen(new PlayScreen(game, isMirror, mapId));
+                }
+            }
+        };
+
+        btnMap1.addListener(clickListener);
+        btnMap2.addListener(clickListener);
+        btnMap3.addListener(clickListener);
+        btnCancel.addListener(clickListener);
+
+        panel.add(btnMap1).width(300).height(60).padBottom(15).row();
+        panel.add(btnMap2).width(300).height(60).padBottom(15).row();
+        panel.add(btnMap3).width(300).height(60).padBottom(25).row();
+        panel.add(btnCancel).width(300).height(60);
+
+        // Canh giữa panel trong màn hình
+        Table centerTable = new Table();
+        centerTable.setFillParent(true);
+        centerTable.center();
+        centerTable.add(panel);
+
+        mapSelectionOverlay.addActor(centerTable);
+        stage.addActor(mapSelectionOverlay);
+    }
+
     // ── Callbacks điều hướng ──────────────────────────────────────────────────
 
-    /** Nút BẮT ĐẦU → vào chế độ 1 Player mặc định */
+    /** Nút BẮT ĐẦU → Hiện bảng chọn Map */
     private void onStartClicked() {
-        boolean isMirror = selectedMode == GameMode.TWO_PLAYER;
-        game.setScreen(new PlayScreen(game, isMirror));
+        mapSelectionOverlay.setVisible(true);
+        mapSelectionOverlay.getColor().a = 0f;
+        mapSelectionOverlay.addAction(Actions.fadeIn(0.2f));
     }
 
     private void on1PlayerClicked() {

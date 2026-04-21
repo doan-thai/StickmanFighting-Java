@@ -343,26 +343,52 @@ public class ParticleEffect {
     /**
      * DUST_LAND — Bụi xám bè ra khi đáp đất
      */
+    /**
+     * DUST_LAND — Khói bụi cuộn lên và đất đá văng ra khi đáp đất
+     */
     private void spawnDustLand(float x, float y) {
-        int count = MathUtils.random(4, 7);
+        // Tăng số lượng hạt lên để nhìn dày dặn hơn
+        int count = MathUtils.random(10, 15);
+
         for (int i = 0; i < count; i++) {
             Particle p = newParticle();
-            p.position.set(x + MathUtils.random(-20f, 20f), y);
-            p.shape = Particle.Shape.DOT;
+            // Sinh ra rải rác dưới chân
+            p.position.set(x + MathUtils.random(-18f, 18f), y + MathUtils.random(0f, 6f));
 
-            // Bụi lan ngang, ít bay lên
+            // 20% tỉ lệ sinh ra mảnh sỏi/đất (LINE), 80% sinh ra khói (DOT)
+            boolean isDebris = MathUtils.randomBoolean(0.2f);
+            p.shape = isDebris ? Particle.Shape.LINE : Particle.Shape.DOT;
+
+            // Vận tốc: Bắn mạnh sang hai bên ngang, và nảy nhẹ lên trên
             float dir = (MathUtils.random() > 0.5f) ? 1f : -1f;
-            float speed = MathUtils.random(40f, 130f);
-            p.velocity.set(dir * speed, MathUtils.random(20f, 80f));
+            float speedX = MathUtils.random(60f, 220f);
+            float speedY = MathUtils.random(10f, 80f);
+            p.velocity.set(dir * speedX, speedY);
 
-            p.life = p.maxLife = MathUtils.random(0.25f, 0.50f);
-            p.size = MathUtils.random(6f, 14f);
-            p.endSize = p.size * 1.5f; // Bụi phình to rồi mờ
-            p.drag = 0.85f;
+            p.life = p.maxLife = MathUtils.random(0.3f, 0.6f);
 
-            float gray = MathUtils.random(0.55f, 0.75f);
-            p.color.set(gray, gray, gray, 0.7f);
-            p.endColor.set(gray, gray, gray, 0f);
+            if (isDebris) {
+                // Sỏi đá thì nhỏ, xoay vòng tròn và rơi nhanh
+                p.size = MathUtils.random(2f, 5f);
+                p.endSize = 0f;
+                p.gravity = -400f; // Rơi xuống đất
+                p.drag = 0.95f;
+                p.rotation = MathUtils.random(360f);
+                p.rotationSpeed = MathUtils.random(-300f, 300f);
+            } else {
+                // Khói thì to ra, lơ lửng và bay chậm lại nhanh chóng
+                p.size = MathUtils.random(4f, 12f);
+                p.endSize = p.size * 2.2f; // Phình to gấp đôi
+                p.gravity = 20f;  // Lực hút dương nhẹ để khói bay ngược lên trên
+                p.drag = 0.82f;   // Lực cản không khí mạnh để khói khựng lại
+            }
+
+            // Màu sắc: Tone màu đất/nâu (Brown/Tan) thay vì xám trắng
+            // Công thức r > g > b tạo ra tone màu đất ấm
+            float shade = MathUtils.random(0.4f, 0.65f);
+            p.color.set(shade, shade * 0.8f, shade * 0.6f, 0.75f);
+            p.endColor.set(shade, shade * 0.8f, shade * 0.6f, 0f); // Mờ dần vào hư không
+
             p.active = true;
         }
     }
