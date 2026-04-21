@@ -36,22 +36,22 @@ import java.util.List;
 import com.stickman.fighting.map.Platform;
 
 /**
- * PlayScreen â€“ MÃ n hÃ¬nh chiáº¿n Ä‘áº¥u chÃ­nh.
+ * PlayScreen – Màn hình chiến đấu chính.
  */
 public class PlayScreen implements Screen {
 
-    // â”€â”€ Dependencies â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // —— Dependencies ——————————————————————————————————————————————————————
     private final MyFightingGame game;
     private final boolean twoPlayerMode;
 
-    // â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // —— Render ————————————————————————————————————————————————————————————————
     private ShapeRenderer shapeRenderer;
     private BitmapFont hudFont;
     private BitmapFont timerFont;
     private GlyphLayout glyphLayout;
     private Texture bgTexture;
 
-    // â”€â”€ Scene2D â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // —— Scene2D ———————————————————————————————————————————————————————————————
     private Stage stage;
     private Skin skin;
 
@@ -62,7 +62,7 @@ public class PlayScreen implements Screen {
     private ProgressBar energyBarP2;
     private Label timerLabel;
     private Label scoreLabel;
-    private Label scoreShadowLabel; // Má»šI: DÃ¹ng Ä‘á»ƒ táº¡o hiá»‡u á»©ng Ä‘á»• bÃ³ng cho Tá»‰ sá»‘
+    private Label scoreShadowLabel; // MỚI: Dùng để tạo hiệu ứng đổ bóng cho Tỉ số
     private float displayedHpP1 = 1f;
     private float displayedHpP2 = 1f;
     private float displayedEnergyP1 = 1f;
@@ -72,11 +72,11 @@ public class PlayScreen implements Screen {
     private Table pauseOverlay;
     private boolean paused = false;
 
-    // â”€â”€ Entities â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // —— Entities ——————————————————————————————————————————————————————————————
     private PlayerFighter player1;
     private Fighter player2;
 
-    // â”€â”€ Game State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // —— Game State ————————————————————————————————————————————————————————————
     private float roundTimeLeft;
     private int scoreP1 = 0;
     private int scoreP2 = 0;
@@ -86,7 +86,7 @@ public class PlayScreen implements Screen {
     private boolean isGameOver = false;
     private int winnerIndex = 0;
 
-    // â”€â”€ Textures (memory leak fix) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // —— Textures (memory leak fix) ————————————————————————————————————————————
     private Texture hpBgTexture;
     private Texture hpBarP1Texture;
     private Texture hpBarP2Texture;
@@ -101,19 +101,19 @@ public class PlayScreen implements Screen {
     private Texture dimOverlayTexture;
     private Texture emptyKnobTexture;
 
-    // â”€â”€ Attack tracking (SFX) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // —— Attack tracking (SFX) —————————————————————————————————————————————————
     private boolean player1WasAttacking = false;
     private boolean player2WasAttacking = false;
     private final ArrayDeque<EnergyProjectile> energyProjectiles = new ArrayDeque<>();
     private final ArrayDeque<com.stickman.fighting.entities.ThrownWeapon> thrownWeapons = new ArrayDeque<>();
 
-    // â”€â”€ Constructor â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    // Constructor 1: DÃ¹ng cho vÃ¡n Ä‘áº§u tiÃªn (Tá»‰ sá»‘ báº¯t Ä‘áº§u tá»« 0-0)
+    // —— Constructor ———————————————————————————————————————————————————————————
+    // Constructor 1: Dùng cho ván đầu tiên (Tỉ số bắt đầu từ 0-0)
     public PlayScreen(MyFightingGame game, boolean twoPlayerMode, int mapId) {
         this(game, twoPlayerMode, 0, 0, mapId);
     }
 
-    // Constructor 2: DÃ¹ng cho cÃ¡c vÃ¡n Äáº¥u Láº¡i (Nháº­n tá»‰ sá»‘ cÅ© truyá»n vÃ o)
+    // Constructor 2: Dùng cho các ván Đấu Lại (Nhận tỉ số cũ truyền vào)
     public PlayScreen(MyFightingGame game, boolean twoPlayerMode, int scoreP1, int scoreP2, int mapId) {
         this.game = game;
         this.twoPlayerMode = twoPlayerMode;
@@ -123,7 +123,7 @@ public class PlayScreen implements Screen {
         this.platforms = com.stickman.fighting.map.MapManager.getPlatforms(mapId);
     }
 
-    // â”€â”€ VÃ²ng Ä‘á»i Screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // —— Vòng đời Screen —————————————————————————————————————————————————————
 
     @Override
     public void show() {
@@ -132,7 +132,7 @@ public class PlayScreen implements Screen {
         hudFont = new BitmapFont();
         hudFont.getData().setScale(1.6f);
 
-        // THAY Äá»”I: DÃ¹ng font TTF cháº¥t lÆ°á»£ng cao thay vÃ¬ font máº·c Ä‘á»‹nh bá»‹ vá»¡ nÃ©t
+        // THAY ĐỔI: Dùng font TTF chất lượng cao thay vì font mặc định bị vỡ nét
         timerFont = WoodenSkin.createUIFont(120);
 
         glyphLayout = new GlyphLayout();
@@ -157,25 +157,25 @@ public class PlayScreen implements Screen {
 
     @Override
     public void render(float delta) {
-        // [CÃCH Sá»¬A Lá»–I LAG]: NgÄƒn "Spiral of Death" khi game bá»‹ khá»±ng
-        // Ã‰p delta tá»‘i Ä‘a chá»‰ báº±ng 0.05 giÃ¢y (tÆ°Æ¡ng Ä‘Æ°Æ¡ng 20 FPS).
-        // Náº¿u lag hÆ¡n, game sáº½ cháº¡y cháº­m láº¡i thay vÃ¬ nháº£y cÃ³c vÃ  gÃ¢y trÃ n RAM.
+        // [CÁCH SỬA LỖI LAG]: Ngăn "Spiral of Death" khi game bị khựng
+        // Ép delta tối đa chỉ bằng 0.05 giây (tương đương 20 FPS).
+        // Nếu lag hơn, game sẽ chạy chậm lại thay vì nhảy cóc và gây tràn RAM.
         float safeDelta = Math.min(delta, 0.05f);
 
-        // ESC â†’ toggle pause (Chá»‰ cho phÃ©p báº¥m Pause khi tráº­n Ä‘áº¥u chÆ°a káº¿t thÃºc)
+        // ESC → toggle pause (Chỉ cho phép bấm Pause khi trận đấu chưa kết thúc)
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE) && !isGameOver) {
             togglePause();
         }
 
-        // Chá»‰ update game logic (Ä‘Ã¡nh nhau) khi khÃ´ng pause vÃ  chÆ°a game over
+        // Chỉ update game logic (đánh nhau) khi không pause và chưa game over
         if (!paused && !isGameOver) {
-            update(safeDelta); // DÃ™NG safeDelta thay vÃ¬ delta
+            update(safeDelta); // DÙNG safeDelta thay vì delta
         }
 
-        // Váº«n cáº­p nháº­t HUD (Ä‘á»ƒ thanh mÃ¡u tá»¥t mÆ°á»£t mÃ ) vÃ  Particle (mÃ¡u/bá»¥i bay) khi Game Over
+        // Vẫn cập nhật HUD (để thanh máu tụt mượt mà) và Particle (máu/bụi bay) khi Game Over
         if (isGameOver) {
             updateHUD();
-            ParticleSystem.getInstance().update(safeDelta); // DÃ™NG safeDelta thay vÃ¬ delta
+            ParticleSystem.getInstance().update(safeDelta); // DÙNG safeDelta thay vì delta
         }
 
         draw();
@@ -236,31 +236,31 @@ public class PlayScreen implements Screen {
         ParticleSystem.getInstance().clear();
     }
 
-    // â”€â”€ Update â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // —— Update ————————————————————————————————————————————————————————————————————————
 
     private void update(float delta) {
-        // LÆ°u tráº¡ng thÃ¡i attack trÆ°á»›c khi update
+        // Lưu trạng thái attack trước khi update
         player1WasAttacking = player1.isAttacking();
         player2WasAttacking = player2.isAttacking();
 
         player1.update(delta, platforms);
         player2.update(delta, platforms);
 
-        // Xoay máº·t vá» phÃ­a Ä‘á»‘i thá»§
+        // Xoay mặt về phía đối thủ
         boolean p1FaceRight = player2.getCenterX() >= player1.getCenterX();
         if (!player1.isAttacking())
             player1.setFacingRight(p1FaceRight);
         if (!player2.isAttacking())
             player2.setFacingRight(!p1FaceRight);
 
-        // Va cháº¡m thÃ¢n
+        // Va chạm thân
         resolveBodyCollision();
 
-        // Kiá»ƒm tra Ä‘Ã²n Ä‘Ã¡nh
+        // Kiểm tra đòn đánh
         player1.checkHit(player2);
         player2.checkHit(player1);
 
-        // SFX táº¥n cÃ´ng (rising edge: false â†’ true)
+        // SFX tấn công (rising edge: false → true)
         if (player1.isAttacking() && !player1WasAttacking) {
             onAttackStarted(player1);
         }
@@ -276,13 +276,13 @@ public class PlayScreen implements Screen {
         if (roundTimeLeft < 0f)
             roundTimeLeft = 0f;
 
-        // Cáº­p nháº­t HUD
+        // Cập nhật HUD
         updateHUD();
 
-        // Kiá»ƒm tra KO / háº¿t giá»
+        // Kiểm tra KO / hết giờ
         checkRoundEnd();
 
-        // Cáº­p nháº­t particle
+        // Cập nhật particle
         ParticleSystem.getInstance().update(delta);
     }
 
@@ -305,7 +305,7 @@ public class PlayScreen implements Screen {
 
     private void checkRoundEnd() {
         if (isGameOver)
-            return; // Tráº­n Ä‘áº¥u Ä‘Ã£ káº¿t thÃºc thÃ¬ khÃ´ng check ná»¯a
+            return; // Trận đấu đã kết thúc thì không check nữa
 
         if (player1.isDead()) {
             scoreP2++;
@@ -323,7 +323,7 @@ public class PlayScreen implements Screen {
                 scoreP2++;
                 winnerIndex = 2;
             } else {
-                winnerIndex = 0; // HÃ²a
+                winnerIndex = 0; // Hòa
             }
             triggerGameOver();
         }
@@ -333,7 +333,7 @@ public class PlayScreen implements Screen {
         isGameOver = true;
         updateScoreLabel();
 
-        // 1. Táº¡o hiá»‡u á»©ng Particle (mÃ¡u/bá»¥i) ngay táº¡i vá»‹ trÃ­ ngÆ°á»i thua
+        // 1. Tạo hiệu ứng Particle (máu/bụi) ngay tại vị trí người thua
         if (winnerIndex == 0) {
             float midX = (player1.getCenterX() + player2.getCenterX()) * 0.5f;
             float midY = (player1.getCenterY() + player2.getCenterY()) * 0.5f + 20f;
@@ -349,9 +349,9 @@ public class PlayScreen implements Screen {
             ParticleSystem.getInstance().emitKO(loser.getCenterX(), loser.getCenterY() + 20f);
         }
 
-        // 2. Xá»­ lÃ½ Ã¢m thanh
+        // 2. Xử lý âm thanh
         SoundManager sm = SoundManager.getInstance();
-        sm.pauseMusic(); // Dá»«ng nháº¡c ná»n chiáº¿n Ä‘áº¥u
+        sm.pauseMusic(); // Dừng nhạc nền chiến đấu
         sm.playSound(SoundManager.SoundEffect.KO);
 
         com.badlogic.gdx.utils.Timer.schedule(new com.badlogic.gdx.utils.Timer.Task() {
@@ -361,27 +361,27 @@ public class PlayScreen implements Screen {
             }
         }, 1.0f);
 
-        // 3. Hiá»ƒn thá»‹ báº£ng Game Over
+        // 3. Hiển thị bảng Game Over
         showGameOverOverlay();
     }
 
     private void showGameOverOverlay() {
-        // Táº­n dá»¥ng lá»›p lÃ m tá»‘i (dimBg) cá»§a Menu Pause
+        // Tận dụng lớp làm tối (dimBg) của Menu Pause
         Actor dim = stage.getRoot().findActor("dimBg");
         if (dim != null) {
             dim.setVisible(true);
             dim.addAction(Actions.fadeIn(0.4f));
         }
 
-        // Táº¡o báº£ng UI chÃ­nh
+        // Tạo bảng UI chính
         Table overlay = new Table();
         overlay.setFillParent(true);
         overlay.center();
         overlay.setTransform(true);
-        overlay.setScale(0.8f); // Thu nhá» lÃºc Ä‘áº§u Ä‘á»ƒ lÃ m hiá»‡u á»©ng pop-up
+        overlay.setScale(0.8f); // Thu nhỏ lúc đầu để làm hiệu ứng pop-up
         overlay.getColor().a = 0f;
 
-        // Báº£ng gá»—
+        // Bảng gỗ
         Table woodPanel = new Table();
         if (Gdx.files.internal("panel_wood.png").exists()) {
             if (pausePanelTexture == null) {
@@ -429,7 +429,7 @@ public class PlayScreen implements Screen {
         btnRematch.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent e, Actor a) {
-                // Truyá»n scoreP1 vÃ  scoreP2 hiá»‡n táº¡i sang vÃ¡n chÆ¡i má»›i
+                // Truyền scoreP1 và scoreP2 hiện tại sang ván chơi mới
                 game.setScreen(new PlayScreen(game, twoPlayerMode, scoreP1, scoreP2, mapId));
             }
         });
@@ -440,23 +440,23 @@ public class PlayScreen implements Screen {
             }
         });
 
-        // Äáº©y UI vÃ o Panel gá»—
+        // Đẩy UI vào Panel gỗ
         woodPanel.add(titleLabel).padBottom(15).row();
         woodPanel.add(winLabel).padBottom(15).row();
-        woodPanel.add(scoreLabel).padBottom(35).row(); // TÄƒng khoáº£ng trá»‘ng dÆ°á»›i sá»‘ cho thoÃ¡ng
+        woodPanel.add(scoreLabel).padBottom(35).row(); // Tăng khoảng trống dưới số cho thoáng
         woodPanel.add(btnRematch).width(280).height(65).padBottom(15).row();
         woodPanel.add(btnBack).width(280).height(65);
 
         overlay.add(woodPanel);
         stage.addActor(overlay);
 
-        // Hiá»‡u á»©ng hiá»‡n ra mÆ°á»£t mÃ  vÃ  náº£y (swingOut)
+        // Hiệu ứng hiện ra mượt mà và nảy (swingOut)
         overlay.addAction(Actions.parallel(
                 Actions.fadeIn(0.5f),
                 Actions.scaleTo(1f, 1f, 0.5f, com.badlogic.gdx.math.Interpolation.swingOut)));
     }
 
-    // â”€â”€ Draw â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // —— Draw ——————————————————————————————————————————————————————————————————————————
 
     private void draw() {
         Gdx.gl.glClearColor(0.1f, 0.06f, 0.02f, 1f);
@@ -472,20 +472,20 @@ public class PlayScreen implements Screen {
         // 2. Fighters + Particles
         renderFighters();
 
-        // 4. HUD (luÃ´n trÃªn cÃ¹ng)
-        // Váº«n act khi pause Ä‘á»ƒ overlay/animation vÃ  input UI hoáº¡t Ä‘á»™ng bÃ¬nh thÆ°á»ng.
+        // 4. HUD (luôn trên cùng)
+        // Vẫn act khi pause để overlay/animation và input UI hoạt động bình thường.
         stage.act(Gdx.graphics.getDeltaTime());
         stage.draw();
     }
 
     private void renderFighters() {
-        // Báº­t Blending Ä‘á»ƒ váº½ bÃ³ng má» (Alpha trong suá»‘t)
+        // Bật Blending để vẽ bóng mờ (Alpha trong suốt)
         Gdx.gl.glEnable(GL20.GL_BLEND);
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
 
         shapeRenderer.setProjectionMatrix(stage.getCamera().combined);
 
-        // Gá»˜P CHUNG VÃ€O 1 PASS FILLED DUY NHáº¤T
+        // GỘP CHUNG VÀO 1 PASS FILLED DUY NHẤT
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
 
         // --- Render Platforms ---
@@ -495,31 +495,31 @@ public class PlayScreen implements Screen {
             float pw = plat.getWidth();
             float ph = plat.getHeight();
 
-            // 1. Viá»n Ä‘en
+            // 1. Viền đen
             shapeRenderer.setColor(Color.BLACK);
             shapeRenderer.rect(px - 2, py - 2, pw + 4, ph + 4);
 
-            // 2. ThÃ¢n bá»¥c mÃ u gá»—
+            // 2. Thân bục màu gỗ
             shapeRenderer.setColor(Constants.COLOR_WOOD_MID[0], Constants.COLOR_WOOD_MID[1], Constants.COLOR_WOOD_MID[2], Constants.COLOR_WOOD_MID[3]);
             shapeRenderer.rect(px, py, pw, ph);
 
-            // 3. Bá» máº·t mÃ u vÃ ng/xanh sÃ¡ng
+            // 3. Bề mặt màu vàng/xanh sáng
             shapeRenderer.setColor(0.7f, 0.95f, 0.15f, 1f);
             shapeRenderer.rect(px, py + ph - 4f, pw, 4f);
         }
 
-        // Váº½ Ä‘áº§u
+        // Vẽ đầu
         player1.renderFilled(shapeRenderer);
         player2.renderFilled(shapeRenderer);
         renderEnergyProjectiles(shapeRenderer);
 
-        // Váº½ thÃ¢n, tay, chÃ¢n (dÃ¹ng rectLine Ä‘áº·c ruá»™t)
+        // Vẽ thân, tay, chân (dùng rectLine đặc ruột)
         player1.renderLines(shapeRenderer);
         player2.renderLines(shapeRenderer);
 
         shapeRenderer.end();
 
-        // Pass 3: SpriteBatch (DÃ¹ng cho Sprite vÃ  Tuyá»‡t chiÃªu vá»‹nh nÆ°á»›c)
+        // Pass 3: SpriteBatch (Dùng cho Sprite và Tuyệt chiêu vịnh nước)
         game.batch.begin();
         player1.renderWeapon(game.batch);
         player2.renderWeapon(game.batch);
@@ -528,10 +528,10 @@ public class PlayScreen implements Screen {
         }
         game.batch.end();
 
-        // Pass Particles (Giá»¯ nguyÃªn)
+        // Pass Particles (Giữ nguyên)
         ParticleSystem.getInstance().render(shapeRenderer);
 
-        // Táº¯t Blending sau khi váº½ xong
+        // Tắt Blending sau khi vẽ xong
         Gdx.gl.glDisable(GL20.GL_BLEND);
     }
 
@@ -598,7 +598,7 @@ public class PlayScreen implements Screen {
                 attacker.isFacingRight(),
                 Constants.ENERGY_DAMAGE));
 
-        // Giá»¯ sá»‘ lÆ°á»£ng projectile á»•n Ä‘á»‹nh trong trÆ°á»ng há»£p spam chiÃªu.
+        // Giữ số lượng projectile ổn định trong trường hợp spam chiêu.
         while (energyProjectiles.size() > 24) {
             energyProjectiles.removeFirst();
         }
@@ -610,7 +610,7 @@ public class PlayScreen implements Screen {
             EnergyProjectile projectile = it.next();
             projectile.update(delta);
 
-            // Cháº·n Ä‘áº¡n bay ra khá»i mÃ n hÃ¬nh
+            // Chặn đạn bay ra khỏi màn hình
             if (projectile.getX() < -200 || projectile.getX() > Constants.SCREEN_WIDTH + 200) {
                 projectile.deactivate();
             }
@@ -621,13 +621,13 @@ public class PlayScreen implements Screen {
             }
 
             Fighter target = projectile.getOwner() == player1 ? player2 : player1;
-            // KHI QUáº¢ Cáº¦U TRÃšNG ÄÃCH
+            // KHI QUẢ CẦU TRÚNG ĐÍCH
             if (!target.isDead() && projectile.hits(target)) {
                 target.receiveHit(projectile.getDamage());
                 projectile.deactivate();
                 it.remove();
 
-                // [THÃŠM DÃ’NG NÃ€Y VÃ€O ÄÃ‚Y] PhÃ¡t tiáº¿ng ná»• khi trÃºng Ä‘á»‹ch
+                // [THÊM DÒNG NÀY VÀO ĐÂY] Phát tiếng nổ khi trúng địch
                 SoundManager.getInstance().playSound(SoundManager.SoundEffect.ENERGY_HIT);
             }
         }
@@ -639,14 +639,14 @@ public class PlayScreen implements Screen {
         }
     }
 
-    // â”€â”€ HUD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // —— HUD ———————————————————————————————————————————————————————————————————————————
 
     private void buildHUD() {
         Table root = new Table();
         root.setFillParent(true);
         root.top().padTop(2);
 
-        // 1. Khá»Ÿi táº¡o thanh mÃ¡u
+        // 1. Khởi tạo thanh máu
         ProgressBar.ProgressBarStyle p1Style = makeHpBarStyle(
                 new Color(0.2f, 0.6f, 1f, 1f), true);
         hpBarP1 = new ProgressBar(0f, 1f, 0.01f, false, p1Style);
@@ -655,51 +655,51 @@ public class PlayScreen implements Screen {
         ProgressBar.ProgressBarStyle p2Style = makeHpBarStyle(
                 new Color(1f, 0.25f, 0.25f, 1f), false);
         hpBarP2 = new ProgressBar(0f, 1f, 0.01f, false, p2Style);
-        // Báº®T BUá»˜C LÃ€ 0f: VÃ¬ P2 cháº¡y ngÆ°á»£c, 0 cÃ³ nghÄ©a lÃ  "Äáº§y mÃ¡u"
+        // BẮT BUỘC LÀ 0f: Vì P2 chạy ngược, 0 có nghĩa là "Đầy máu"
         hpBarP2.setValue(0f);
 
-        // Khá»Ÿi táº¡o thanh NÄƒng LÆ°á»£ng
+        // Khởi tạo thanh Năng Lượng
         ProgressBar.ProgressBarStyle p1EnergyStyle = makeEnergyBarStyle(
-                new Color(1f, 0.85f, 0f, 1f), true); // VÃ ng
+                new Color(1f, 0.85f, 0f, 1f), true); // Vàng
         energyBarP1 = new ProgressBar(0f, 1f, 0.01f, false, p1EnergyStyle);
         energyBarP1.setValue(1f);
 
         ProgressBar.ProgressBarStyle p2EnergyStyle = makeEnergyBarStyle(
-                new Color(1f, 0.85f, 0f, 1f), false); // VÃ ng
+                new Color(1f, 0.85f, 0f, 1f), false); // Vàng
         energyBarP2 = new ProgressBar(0f, 1f, 0.01f, false, p2EnergyStyle);
         energyBarP2.setValue(0f);
 
-        // Thiáº¿t láº­p Font chá»¯
+        // Thiết lập Font chữ
         BitmapFont scoreFont = WoodenSkin.createUIFont(42);
         BitmapFont timerFontUi = WoodenSkin.createUIFont(34);
         skin.add("hud-score-font", scoreFont, BitmapFont.class);
         skin.add("hud-timer-font", timerFontUi, BitmapFont.class);
 
-        // Äá»”I MÃ€U: Sá»­a mÃ u cam thÃ nh mÃ u VÃ ng Gold sÃ¡ng (1f, 0.85f, 0f, 1f) cho ná»•i báº­t
+        // ĐỔI MÀU: Sửa màu cam thành màu Vàng Gold sáng (1f, 0.85f, 0f, 1f) cho nổi bật
         skin.add("hudScore", new Label.LabelStyle(scoreFont, Color.WHITE), Label.LabelStyle.class);
         skin.add("hudTimer", new Label.LabelStyle(timerFontUi, Color.WHITE), Label.LabelStyle.class);
 
-        // ================= THAY THáº¾ TOÃ€N Bá»˜ PHáº¦N DÆ¯á»šI NÃ€Y =================
+        // ================= THAY THẾ TOÀN BỘ PHẦN DƯỚI NÀY =================
 
-        // 2. Táº O HIá»†U á»¨NG CHá»® Ná»”I (DROP SHADOW) CHO Tá»ˆ Sá»
+        // 2. TẠO HIỆU ỨNG CHỮ NỔI (DROP SHADOW) CHO TỶ SỐ
 
-        // Lá»›p 1: Chá»¯ Ä‘á»• bÃ³ng (Náº±m dÆ°á»›i)
-        scoreShadowLabel = new Label(scoreP1 + " - " + scoreP2, skin, "title"); // Äá»•i thÃ nh "title"
+        // Lớp 1: Chữ đổ bóng (Nằm dưới)
+        scoreShadowLabel = new Label(scoreP1 + " - " + scoreP2, skin, "title"); // Đổi thành "title"
         scoreShadowLabel.setAlignment(Align.center);
-        scoreShadowLabel.setFontScale(1.0f); // Háº¡ scale xuá»‘ng 1.0
+        scoreShadowLabel.setFontScale(1.0f); // Hạ scale xuống 1.0
         scoreShadowLabel.setColor(new Color(0.1f, 0.05f, 0f, 0.9f));
 
-        // Lá»›p 2: Chá»¯ hiá»ƒn thá»‹ chÃ­nh (Náº±m trÃªn)
-        scoreLabel = new Label(scoreP1 + " - " + scoreP2, skin, "title"); // Äá»•i thÃ nh "title"
+        // Lớp 2: Chữ hiển thị chính (Nằm trên)
+        scoreLabel = new Label(scoreP1 + " - " + scoreP2, skin, "title"); // Đổi thành "title"
         scoreLabel.setAlignment(Align.center);
-        scoreLabel.setFontScale(1.0f); // Háº¡ scale xuá»‘ng 1.0
+        scoreLabel.setFontScale(1.0f); // Hạ scale xuống 1.0
         scoreLabel.setColor(new Color(1f, 0.9f, 0.1f, 1f));
 
-        // DÃ¹ng Stack Ä‘á»ƒ Ä‘Ã¨ 2 chá»¯ lÃªn nhau
+        // Dùng Stack để đè 2 chữ lên nhau
         Stack scoreStack = new Stack();
 
         Table shadowTable = new Table();
-        shadowTable.add(scoreShadowLabel).padTop(6).padLeft(6); // Äáº©y bÃ³ng lá»‡ch xuá»‘ng dÆ°á»›i vÃ  sang pháº£i 6px
+        shadowTable.add(scoreShadowLabel).padTop(6).padLeft(6); // Đẩy bóng lệch xuống dưới và sang phải 6px
 
         Table frontTable = new Table();
         frontTable.add(scoreLabel);
@@ -707,13 +707,13 @@ public class PlayScreen implements Screen {
         scoreStack.add(shadowTable);
         scoreStack.add(frontTable);
 
-        // -- Cáº¥u hÃ¬nh Thá»i gian
+        // -- Cấu hình Thời gian
         timerLabel = new Label(String.valueOf((int) roundTimeLeft), skin, "hudTimer");
         timerLabel.setAlignment(Align.center);
         timerLabel.setFontScale(1.1f);
         timerLabel.setColor(new Color(1f, 1f, 1f, 0.9f));
 
-        // 3. NÃºt Pause
+        // 3. Nút Pause
         Button.ButtonStyle pauseStyle = new Button.ButtonStyle();
         if (pauseIconTexture == null) {
             pauseIconTexture = createPauseIconTexture(48);
@@ -730,15 +730,15 @@ public class PlayScreen implements Screen {
             }
         });
 
-        // 4. Bá»‘ cá»¥c láº¡i Table chÃ­nh
+        // 4. Bố cục lại Table chính
 
         Table topRow = new Table();
         topRow.add().width(56);
-        // Sá»¬A DÃ’NG NÃ€Y: XÃ³a bá» ".padTop(5f)" á»Ÿ cuá»‘i Ä‘á»ƒ Tá»‰ sá»‘ nhÃ­ch lÃªn cao nháº¥t cÃ³ thá»ƒ
+        // SỬA DÒNG NÀY: Xóa bỏ ".padTop(5f)" ở cuối để Tỷ số nhích lên cao nhất có thể
         topRow.add(scoreStack).expandX().center();
         topRow.add(btnPause).size(46, 46).right().padRight(10);
 
-        // DÃ’NG 2: Thanh MÃ¡u P1 - Thá»i Gian - Thanh MÃ¡u P2
+        // DÒNG 2: Thanh Máu P1 - Thời Gian - Thanh Máu P2
         Table leftHud = new Table();
         leftHud.add(hpBarP1).expandX().fillX().height(30f).row();
         leftHud.add(energyBarP1).expandX().fillX().height(4f).padTop(2f);
@@ -748,15 +748,15 @@ public class PlayScreen implements Screen {
         rightHud.add(energyBarP2).expandX().fillX().height(4f).padTop(2f);
 
         Table battleHudRow = new Table();
-        // ThÃªm padRight(50f) vÃ  padLeft(50f) Ä‘á»ƒ Ä‘áº©y thanh mÃ¡u cÃ¡ch xa Ä‘á»“ng há»“ Ä‘áº¿m ngÆ°á»£c
+        // Thêm padRight(50f) và padLeft(50f) để đẩy thanh máu cách xa đồng hồ đếm ngược
         battleHudRow.add(leftHud).expandX().fillX().padLeft(20f).padRight(50f);
         battleHudRow.add(timerLabel).width(120).center();
         battleHudRow.add(rightHud).expandX().fillX().padLeft(50f).padRight(20f);
 
         root.add(topRow).expandX().fillX().row();
 
-        // Sá»¬A DÃ’NG NÃ€Y: Giáº£m .padTop(8f) xuá»‘ng thÃ nh .padTop(2f) Ä‘á»ƒ Thanh mÃ¡u Ã©p sÃ¡t
-        // vÃ o hÃ ng Tá»‰ sá»‘
+        // SỬA DÒNG NÀY: Giảm .padTop(8f) xuống thành .padTop(2f) để Thanh máu ép sát
+        // vào hàng Tỷ số
         root.add(battleHudRow).expandX().fillX().padTop(2f);
 
         stage.addActor(root);
@@ -785,12 +785,12 @@ public class PlayScreen implements Screen {
         }
     }
 
-    // â”€â”€ Pause Overlay â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // —— Pause Overlay —————————————————————————————————————————————————————————
 
     private void buildPauseOverlay() {
-        // 1. Dim background (MÃ ng lÃ m tá»‘i toÃ n mÃ n hÃ¬nh)
+        // 1. Dim background (Màng làm tối toàn màn hình)
         Pixmap dimPm = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
-        dimPm.setColor(0f, 0f, 0f, 0.75f); // Tá»‘i 75%
+        dimPm.setColor(0f, 0f, 0f, 0.75f); // Tối 75%
         dimPm.fill();
         dimOverlayTexture = new Texture(dimPm);
         dimPm.dispose();
@@ -801,7 +801,7 @@ public class PlayScreen implements Screen {
         dimBg.setVisible(false);
         dimBg.getColor().a = 0f;
 
-        // 2. Overlay chá»©a Panel gá»—
+        // 2. Overlay chứa Panel gỗ
         pauseOverlay = new Table();
         pauseOverlay.setFillParent(true);
         pauseOverlay.center();
@@ -811,18 +811,18 @@ public class PlayScreen implements Screen {
         pauseOverlay.setScale(0.92f);
         pauseOverlay.getColor().a = 0f;
 
-        // 3. Sá»¬ Dá»¤NG CÃC STYLE CÃ“ Sáº´N Tá»ª WOODENSKIN (KhÃ¡c mÃ u, cÃ³ bo gÃ³c)
-        // "primary": ThÆ°á»ng lÃ  mÃ u ná»•i báº­t (Xanh dÆ°Æ¡ng/Xanh lÃ¡)
-        // Äá»•i "primary", "light" vÃ  "danger" thÃ nh cÃ¡c style chuáº©n dÆ°á»›i Ä‘Ã¢y:
+        // 3. SỬ DỤNG CÁC STYLE CÓ SẴN TỪ WOODENSKIN (Khác màu, có bo góc)
+        // "primary": Thường là màu nổi bật (Xanh dương/Xanh lá)
+        // Đổi "primary", "light" và "danger" thành các style chuẩn dưới đây:
         TextButton btnResume = new TextButton(I18n.get("TIẾP TỤC"), skin, "resume");
         TextButton btnRestart = new TextButton(I18n.get("CHƠI LẠI"), skin, "restart");
         TextButton btnQuit = new TextButton(I18n.get("THOÁT"), skin, "quit");
-        // Scale nháº¹ chá»¯ lÃªn 10% Ä‘á»ƒ cÃ¢n Ä‘á»‘i vá»›i kÃ­ch thÆ°á»›c to cá»§a nÃºt
+        // Scale nhẹ chữ lên 10% để cân đối với kích thước to của nút
         btnResume.getLabel().setFontScale(1.1f);
         btnRestart.getLabel().setFontScale(1.1f);
         btnQuit.getLabel().setFontScale(1.1f);
 
-        // Map sá»± kiá»‡n cho cÃ¡c nÃºt
+        // Map sự kiện cho các nút
         btnResume.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent e, Actor a) {
@@ -842,10 +842,10 @@ public class PlayScreen implements Screen {
             }
         });
 
-        // 4. Láº¯p rÃ¡p báº£ng gá»— trung tÃ¢m
+        // 4. Lắp ráp bảng gỗ trung tâm
         Table woodPanel = new Table();
 
-        // Load trá»±c tiáº¿p panel_wood.png
+        // Load trực tiếp panel_wood.png
         if (Gdx.files.internal("panel_wood.png").exists()) {
             if (pausePanelTexture != null)
                 pausePanelTexture.dispose();
@@ -913,7 +913,7 @@ public class PlayScreen implements Screen {
             sm.resumeMusic();
     }
 
-    // â”€â”€ Spawn â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // —— Spawn —————————————————————————————————————————————————————————————————————
 
     private void spawnFighters() {
         float p1X = Constants.SCREEN_WIDTH * 0.25f;
@@ -945,13 +945,13 @@ public class PlayScreen implements Screen {
         energyProjectiles.clear();
     }
 
-    // â”€â”€ Texture Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    // HÃ m tá»± Ä‘á»™ng táº¡o má»™t khá»‘i mÃ u Ä‘Æ¡n sáº¯c co giÃ£n tá»± do, KHÃ”NG BAO GIá»œ TRÃ€N VIá»€N
-    // ThÃªm tham sá»‘ height vÃ o Ä‘á»ƒ Ã©p LibGDX pháº£i váº½ chiá»u cao
+    // —— Texture Helpers ———————————————————————————————————————————————————————
+    // Hàm tự động tạo một khối màu đơn sắc co giãn tự do, KHÔNG BAO GIỜ TRÀN VIỀN
+    // Thêm tham số height vào để ép LibGDX phải vẽ chiều cao
 
-    // XÃ³a hÃ m createSolidColor cÅ© vÃ  sá»­a láº¡i makeHpBarStyle
+    // Xóa hàm createSolidColor cũ và sửa lại makeHpBarStyle
     private ProgressBar.ProgressBarStyle makeHpBarStyle(Color barColor, boolean isP1) {
-        // Khá»Ÿi táº¡o vÃ  LÆ¯U Láº I Texture Ä‘á»ƒ sau nÃ y dispose
+        // Khởi tạo và LƯU LẠI Texture để sau này dispose
         if (hpBgTexture == null) {
             Pixmap bgPm = new Pixmap(1, 24, Pixmap.Format.RGBA8888);
             bgPm.setColor(new Color(0.18f, 0.18f, 0.18f, 0.9f));
@@ -966,13 +966,13 @@ public class PlayScreen implements Screen {
         Texture fillTex = new Texture(fillPm);
         fillPm.dispose();
 
-        // LÆ°u Ä‘Ãºng texture cá»§a P1 hoáº·c P2
+        // Lưu đúng texture của P1 hoặc P2
         if (isP1)
             hpBarP1Texture = fillTex;
         else
             hpBarP2Texture = fillTex;
 
-        // Táº¡o cá»¥c knob tÃ ng hÃ¬nh (chá»‰ cáº§n táº¡o 1 láº§n)
+        // Tạo cục knob tàng hình (chỉ cần tạo 1 lần)
         if (emptyKnobTexture == null) {
             Pixmap knobPm = new Pixmap(1, 24, Pixmap.Format.RGBA8888);
             knobPm.setColor(Color.CLEAR);
@@ -1077,7 +1077,7 @@ public class PlayScreen implements Screen {
     }
 
     private Texture createPauseIconTexture(int size) {
-        // Supersample Ä‘á»ƒ icon mÆ°á»£t hÆ¡n, giáº£m cáº£m giÃ¡c rÄƒng cÆ°a/pixel.
+        // Supersample để icon mượt hơn, giảm cảm giác răng cưa/pixel.
         int sample = 4;
         int hiSize = size * sample;
         Pixmap hi = new Pixmap(hiSize, hiSize, Pixmap.Format.RGBA8888);
@@ -1206,21 +1206,21 @@ public class PlayScreen implements Screen {
         int h = Constants.SCREEN_HEIGHT;
         Pixmap pm = new Pixmap(w, h, Pixmap.Format.RGBA8888);
 
-        // TÆ°á»ng ná»n
+        // Tường nền
         pm.setColor(0.38f, 0.25f, 0.10f, 1f);
         pm.fill();
 
-        // SÃ n gá»—
+        // Sàn gỗ
         pm.setColor(0.52f, 0.33f, 0.12f, 1f);
         pm.fillRectangle(0, 0, w, (int) (Constants.GROUND_Y + 10));
 
-        // VÃ¢n sÃ n
+        // Vân sàn
         pm.setColor(0.42f, 0.26f, 0.09f, 1f);
         for (int x = 0; x < w; x += 60) {
             pm.drawLine(x, 0, x, (int) Constants.GROUND_Y);
         }
 
-        // ÄÆ°á»ng phÃ¢n cÃ¡ch sÃ n / tÆ°á»ng
+        // Đường phân cách sàn / tường
         pm.setColor(0.22f, 0.12f, 0.04f, 1f);
         pm.fillRectangle(0, (int) Constants.GROUND_Y, w, 4);
 
@@ -1231,8 +1231,8 @@ public class PlayScreen implements Screen {
 
     private TextureRegionDrawable loadPausePanelBackground() {
         if (Gdx.files.internal("panel_hanging.png").exists()) {
-            // panel_hanging hiá»‡n cÃ³ ná»n caro tráº¯ng/xÃ¡m bá»‹ bake vÃ o áº£nh,
-            // loáº¡i bá» pháº§n ná»n edge-connected Ä‘á»ƒ tráº£ vá» trong suá»‘t tháº­t.
+            // panel_hanging hiện có nền caro trắng/xám bị bake vào ảnh,
+            // loại bỏ phần nền edge-connected để trả về trong suốt thật.
             pausePanelTexture = loadPanelTextureWithoutChecker("panel_hanging.png");
             return new TextureRegionDrawable(new TextureRegion(pausePanelTexture));
         }
@@ -1320,10 +1320,10 @@ public class PlayScreen implements Screen {
         return avg >= 170 && avg <= 245 && (max - min) <= 18;
     }
 
-    // Má»šI: HÃ m táº¡o hÃ¬nh áº£nh ná»n cho Tá»‰ sá»‘ (Badge) vá»›i viá»n kim loáº¡i vÃ  ná»n má»
+    // MỚI: Hàm tạo hình ảnh nền cho Tỷ số (Badge) với viền kim loại và nền mờ
     private Texture createScoreBadgeTexture() {
-        // DÃ¹ng ká»¹ thuáº­t Supersampling x3 Ä‘á»ƒ render hÃ¬nh áº£nh to, sau Ä‘Ã³ thu nhá» láº¡i giÃºp
-        // nÃ©t váº½ mÆ°á»£t mÃ , khÃ´ng bá»‹ rÄƒng cÆ°a
+        // Dùng kỹ thuật Supersampling x3 để render hình ảnh to, sau đó thu nhỏ lại giúp
+        // nét vẽ mượt mà, không bị răng cưa
         int sample = 3;
         int w = 160 * sample;
         int h = 54 * sample;
@@ -1333,15 +1333,15 @@ public class PlayScreen implements Screen {
         hi.setColor(0f, 0f, 0f, 0f);
         hi.fill();
 
-        // Váº½ ná»n tá»‘i má» (Ä‘en Ã¡nh nÃ¢u 85%)
+        // Vẽ nền tối mờ (đen ánh nâu 85%)
         drawRoundedRectFill(hi, 0, 0, w, h, radius, new Color(0.12f, 0.08f, 0.05f, 0.85f));
 
-        // Váº½ viá»n ngoÃ i cÃ¹ng mÃ u vÃ ng kim rá»±c rá»¡
+        // Vẽ viền ngoài cùng màu vàng kim rực rỡ
         drawRoundedRectBorder(hi, 0, 0, w, h, radius, new Color(1f, 0.85f, 0.2f, 1f));
-        // Váº½ viá»n trong mÃ u Ä‘á»“ng Ä‘á»ƒ táº¡o Ä‘á»™ sÃ¢u 3D
+        // Vẽ viền trong màu đồng để tạo độ sâu 3D
         drawRoundedRectBorder(hi, sample, sample, w - sample * 2, h - sample * 2, Math.max(1, radius - sample),
                 new Color(0.8f, 0.5f, 0.1f, 1f));
-        // Váº½ viá»n trong cÃ¹ng tá»‘i mÃ u Ä‘á»ƒ Ã©p lÃ m ná»•i ná»n chá»¯
+        // Vẽ viền trong cùng tối màu để ép làm nổi nền chữ
         drawRoundedRectBorder(hi, sample * 2, sample * 2, w - sample * 4, h - sample * 4,
                 Math.max(1, radius - sample * 2), new Color(0.3f, 0.15f, 0.05f, 1f));
 
@@ -1354,4 +1354,3 @@ public class PlayScreen implements Screen {
         return t;
     }
 }
-

@@ -107,7 +107,6 @@ public class I18n {
                         + "- Punch deals double damage while holding a weapon.\n"
                         + "- You can draw a weapon only once per match.");
         putKey("guide.backHint", "Nhấn ESC hoặc nút < để quay lại", "Press ESC or < button to go back");
-        // We can add more if needed
     }
 
     private static void putKey(String key, String vietnamese, String english) {

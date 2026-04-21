@@ -45,9 +45,8 @@ public abstract class Fighter {
     protected float dashCooldown;
     protected float knockdownTimer;
     protected int consecutiveHitsReceived;
-    protected boolean hasHitTarget; // TrÃ¡nh ngáº¯t animation giá»¯a chá»«ng khi Ä‘Ã£ trÃºng Ä‘Ã²n
-    protected float stunTimer; // Hiá»‡u á»©ng "khá»±ng" sau khi bá»‹ Ä‘Ã¡ (Kick) â€” ngÄƒn di chuyá»ƒn & táº¥n
-                               // cÃ´ng
+    protected boolean hasHitTarget; // Tránh ngắt animation giữa chừng khi đã trúng đòn
+    protected float stunTimer;       // Hiệu ứng "khựng" sau khi bị đá (Kick) — ngăn di chuyển & tấn công
 
     protected boolean hasWeapon = false;
     protected boolean weaponUsedThisMatch = false;
@@ -90,7 +89,7 @@ public abstract class Fighter {
         hasHitTarget = false;
     }
 
-    // Lá»›p ná»™i bá»™ Ä‘á»ƒ lÆ°u trá»¯ tráº¡ng thÃ¡i bÃ³ng má» khi tá»‘c biáº¿n
+    // Lớp nội bộ để lưu trữ trạng thái bóng mờ khi tốc biến
     protected class DashGhost {
         float x, y;
         AnimState animState;
@@ -178,8 +177,8 @@ public abstract class Fighter {
 
         if (isAttacking) {
             attackTimer -= delta;
-
-            // Cáº­p nháº­t vá»‹ trÃ­ attackBox theo nhÃ¢n váº­t
+            
+            // Cập nhật vị trí attackBox theo nhân vật
             float boxW = Constants.PUNCH_RANGE;
             float boxH = HEIGHT * 0.5f;
             if (currentAttackType == AttackType.KICK)
@@ -210,7 +209,7 @@ public abstract class Fighter {
             animTimer += delta;
         }
 
-        // Cáº­p nháº­t thá»i gian sá»‘ng cá»§a cÃ¡c bÃ³ng má»
+        // Cập nhật thời gian sống của các bóng mờ
         for (int i = dashGhosts.size() - 1; i >= 0; i--) {
             DashGhost g = dashGhosts.get(i);
             g.lifeTime += delta;
@@ -294,7 +293,7 @@ public abstract class Fighter {
         // Có thể spam các chiêu miễn là con năng lượng (Bỏ check attackCooldown)
         if (isAttacking || knockdownTimer > 0f || stunTimer > 0f)
             return false;
-
+            
         if (type == AttackType.ENERGY && energy < 20f) {
             return false;
         }
@@ -306,7 +305,7 @@ public abstract class Fighter {
         isAttacking = true;
         attackTimer = ATTACK_DURATION;
         hasHitTarget = false; // Bắt đầu chiêu mới, reset va chạm
-
+        
         // Vẫn thiết lập cooldown để quản lý trạng thái, nhưng không chặn spam
         attackCooldown = switch (type) {
             case PUNCH -> Constants.PUNCH_COOLDOWN;
@@ -317,7 +316,7 @@ public abstract class Fighter {
         if (type == AttackType.ENERGY) {
             energy -= 20f;
         }
-
+        
         setAnimState(AnimState.ATTACK);
 
         float boxW = Constants.PUNCH_RANGE;
@@ -341,8 +340,7 @@ public abstract class Fighter {
         if (currentAttackType == AttackType.ENERGY)
             return false;
 
-        // Cháº·n trÃºng Ä‘Ã²n áº£o: má»¥c tiÃªu pháº£i á»Ÿ trÆ°á»›c máº·t vÃ  trong
-        // táº§m ngang há»£p lá»‡.
+        // Chặn trúng đòn ảo: mục tiêu phải ở trước mặt và trong tầm ngang hợp lệ.
         float dir = facingRight ? 1f : -1f;
         float toTarget = target.getCenterX() - getCenterX();
         if (toTarget * dir <= 0f)
@@ -366,7 +364,7 @@ public abstract class Fighter {
         if (attackBox.overlaps(target.bounds)) {
             target.receiveHit(getCurrentAttackDamage());
 
-            // Ãp dá»¥ng hiá»‡u á»©ng "khá»±ng" (stun) Ä‘áº·c biá»‡t khi bá»‹ Ä‘Ã¡
+            // Áp dụng hiệu ứng "khựng" (stun) đặc biệt khi bị đá
             if (currentAttackType == AttackType.KICK) {
                 target.applyStun(0.22f);
                 recoverEnergy(12f);
@@ -374,7 +372,7 @@ public abstract class Fighter {
                 recoverEnergy(10f);
             }
 
-            // TÃ­nh toÃ¡n lá»±c Ä‘áº©y lÃ¹i (Knock-back)
+            // Tính toán lực đẩy lùi (Knock-back)
             float knockDir = facingRight ? 1f : -1f;
             float kbX = switch (currentAttackType) {
                 case PUNCH -> 150f;
@@ -389,7 +387,7 @@ public abstract class Fighter {
             target.velocity.x = knockDir * kbX;
             target.velocity.y = kbY;
 
-            // ÄÃ¡nh dáº¥u Ä‘Ã£ Ä‘Ã¡nh trÃºng
+            // Đánh dấu đã đánh trúng
             hasHitTarget = true;
             return true;
         }
@@ -430,10 +428,9 @@ public abstract class Fighter {
     }
 
     /**
-     * Ãp dá»¥ng hiá»‡u á»©ng khá»±ng (stun) ngáº¯n sau khi bá»‹ Ä‘Ã¡.
-     * Trong thá»i gian nÃ y nhÃ¢n váº­t khÃ´ng thá»ƒ di chuyá»ƒn hoáº·c táº¥n
-     * cÃ´ng.
-     * Knockdown cÃ³ Æ°u tiÃªn cao hÆ¡n (stun khÃ´ng ghi Ä‘Ã¨ knockdown).
+     * Áp dụng hiệu ứng khựng (stun) ngắn sau khi bị đá.
+     * Trong thời gian này nhân vật không thể di chuyển hoặc tấn công.
+     * Knockdown có ưu tiên cao hơn (stun không ghi đè knockdown).
      */
     public void applyStun(float duration) {
         if (knockdownTimer <= 0f) {
@@ -442,9 +439,9 @@ public abstract class Fighter {
     }
 
     /**
-     * Tráº£ vá» true náº¿u nhÃ¢n váº­t Ä‘ang trong thá»i gian há»“i chiÃªu
-     * (Ä‘Ã£ táº¥n cÃ´ng xong nhÆ°ng chÆ°a thá»ƒ táº¥n cÃ´ng láº¡i).
-     * Há»¯u Ã­ch cho AI Ä‘á»ƒ phÃ¡t hiá»‡n sÆ¡ há»Ÿ cá»§a Ä‘á»‘i thá»§.
+     * Trả về true nếu nhân vật đang trong thời gian hồi chiêu
+     * (đã tấn công xong nhưng chưa thể tấn công lại).
+     * Hữu ích cho AI để phát hiện sơ hở của đối thủ.
      */
     public boolean isInAttackCooldown() {
         return false;
@@ -467,29 +464,27 @@ public abstract class Fighter {
     public boolean dash() {
         if (knockdownTimer > 0f || stunTimer > 0f || energy < 10f)
             return false;
-
+            
         energy -= 10f;
-
+        
         float dir = facingRight ? 1f : -1f;
         float leftLimit = 20f;
         float rightLimit = Constants.SCREEN_WIDTH - WIDTH - 20f;
-
+        
         float startX = position.x;
         float targetX = position.x + (dir * Constants.DASH_DISTANCE);
-
-        if (targetX < leftLimit)
-            targetX = leftLimit;
-        if (targetX > rightLimit)
-            targetX = rightLimit;
-
+        
+        if (targetX < leftLimit) targetX = leftLimit;
+        if (targetX > rightLimit) targetX = rightLimit;
+        
         float actualDist = targetX - startX;
-
-        // Táº¡o cÃ¡c bÃ³ng má» dá»c theo Ä‘Æ°á»ng lÆ°á»›t
+        
+        // Tạo các bóng mờ dọc theo đường lướt
         if (Math.abs(actualDist) > 5f) {
             int numGhosts = 5;
             for (int i = 0; i < numGhosts; i++) {
                 DashGhost ghost = new DashGhost();
-                ghost.x = startX + (actualDist * ((float) i / numGhosts));
+                ghost.x = startX + (actualDist * ((float)i / numGhosts));
                 ghost.y = position.y;
                 ghost.animState = animState;
                 ghost.animTimer = animTimer;
@@ -497,8 +492,7 @@ public abstract class Fighter {
                 ghost.currentAttackType = currentAttackType;
                 ghost.isBlocking = isBlocking;
                 ghost.facingRight = facingRight;
-                // CÃ¡c bÃ³ng sinh ra á»Ÿ xa (i nhá») báº¯t Ä‘áº§u vá»›i lifeTime lá»›n hÆ¡n
-                // Ä‘á»ƒ biáº¿n máº¥t nhanh hÆ¡n
+                // Các bóng sinh ra ở xa (i nhỏ) bắt đầu với lifeTime lớn hơn để biến mất nhanh hơn
                 ghost.lifeTime = (numGhosts - 1 - i) * 0.05f;
                 dashGhosts.add(ghost);
             }
@@ -549,12 +543,11 @@ public abstract class Fighter {
     private static final float LINE_THICKNESS = 5f;
 
     public void renderFilled(ShapeRenderer sr) {
-        // Render bÃ³ng má» phÃ­a dÆ°á»›i
+        // Render bóng mờ phía dưới
         for (DashGhost g : dashGhosts) {
-            if (g.lifeTime >= g.maxLifeTime)
-                continue;
+            if (g.lifeTime >= g.maxLifeTime) continue;
             float alpha = 1f - (g.lifeTime / g.maxLifeTime);
-            alpha = Math.max(0f, Math.min(alpha * 0.45f, 0.45f));
+            alpha = Math.max(0f, Math.min(alpha * 0.45f, 0.45f)); 
             Color ghostColor = new Color(bodyColor.r, bodyColor.g, bodyColor.b, alpha);
             drawFilledAt(sr, g.x, g.y, g.facingRight, false, g.attackTimer, g.currentAttackType, ghostColor);
         }
@@ -563,8 +556,7 @@ public abstract class Fighter {
         drawFilledAt(sr, position.x, position.y, facingRight, isAttacking, attackTimer, currentAttackType, renderColor);
     }
 
-    private void drawFilledAt(ShapeRenderer sr, float px, float py, boolean fRight, boolean attacking, float attTimer,
-            AttackType attType, Color color) {
+    private void drawFilledAt(ShapeRenderer sr, float px, float py, boolean fRight, boolean attacking, float attTimer, AttackType attType, Color color) {
         sr.setColor(color);
         float cx = px + WIDTH / 2f;
         float by = py;
@@ -592,24 +584,20 @@ public abstract class Fighter {
     }
 
     public void renderLines(ShapeRenderer sr) {
-        // Render bÃ³ng má»
+        // Render bóng mờ
         for (DashGhost g : dashGhosts) {
-            if (g.lifeTime >= g.maxLifeTime)
-                continue;
+            if (g.lifeTime >= g.maxLifeTime) continue;
             float alpha = 1f - (g.lifeTime / g.maxLifeTime);
-            alpha = Math.max(0f, Math.min(alpha * 0.45f, 0.45f));
+            alpha = Math.max(0f, Math.min(alpha * 0.45f, 0.45f)); 
             Color ghostColor = new Color(bodyColor.r, bodyColor.g, bodyColor.b, alpha);
-            drawLinesAt(sr, g.x, g.y, g.facingRight, g.animState, g.animTimer, g.isBlocking, g.currentAttackType,
-                    g.attackTimer, ghostColor);
+            drawLinesAt(sr, g.x, g.y, g.facingRight, g.animState, g.animTimer, g.isBlocking, g.currentAttackType, g.attackTimer, ghostColor);
         }
 
         Color renderColor = getEffectiveColor();
-        drawLinesAt(sr, position.x, position.y, facingRight, animState, animTimer, isBlocking, currentAttackType,
-                attackTimer, renderColor);
+        drawLinesAt(sr, position.x, position.y, facingRight, animState, animTimer, isBlocking, currentAttackType, attackTimer, renderColor);
     }
 
-    private void drawLinesAt(ShapeRenderer sr, float px, float py, boolean fRight, AnimState aState, float aTimer,
-            boolean blocking, AttackType attType, float attTimer, Color color) {
+    private void drawLinesAt(ShapeRenderer sr, float px, float py, boolean fRight, AnimState aState, float aTimer, boolean blocking, AttackType attType, float attTimer, Color color) {
         sr.setColor(color);
 
         float cx = px + WIDTH / 2f;
@@ -617,7 +605,7 @@ public abstract class Fighter {
         float headR = 12f;
         float headY = by + HEIGHT - headR;
         float neckY = headY - headR + 2f;
-
+        
         // Vẽ đầu (Line/Wireframe cũng cần có đầu tròn)
         sr.circle(cx, headY, headR);
 
@@ -653,7 +641,8 @@ public abstract class Fighter {
                 armAngleL = 135f;
                 armAngleR = 110f;
             }
-        } else if (aState == AnimState.ATTACK) {
+        }
+        else if (aState == AnimState.ATTACK) {
             if (attType == AttackType.PUNCH) {
                 if (fRight) {
                     armAngleR = 315f + 45f * p;
@@ -675,7 +664,8 @@ public abstract class Fighter {
                     armAngleR = 315f - 135f * p;
                 }
             }
-        } else if (aState == AnimState.HIT) {
+        }
+        else if (aState == AnimState.HIT) {
             armAngleL = fRight ? 200f : 340f;
             armAngleR = fRight ? 200f : 340f;
             legAngleL = 250f;
