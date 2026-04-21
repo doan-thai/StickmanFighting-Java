@@ -14,7 +14,7 @@ public final class Constants {
     public static final float GRAVITY = -980f; // px/s² (tự code, không Box2D)
     public static final float GROUND_Y = 80f; // Độ cao mặt đất
     public static final float PLAYER_SPEED = 220f;
-    public static final float JUMP_VELOCITY = 550f;
+    public static final float JUMP_VELOCITY = 460f;
 
     // --- Chiến đấu ---
     public static final float MAX_HP = 100f;

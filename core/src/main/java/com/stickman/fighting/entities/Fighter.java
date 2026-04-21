@@ -6,8 +6,10 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
+import com.stickman.fighting.map.Platform;
 import com.stickman.fighting.utils.Constants;
 import com.stickman.fighting.utils.SoundManager;
+import java.util.List;
 
 public abstract class Fighter {
 
@@ -24,14 +26,16 @@ public abstract class Fighter {
     protected boolean onGround;
     protected boolean facingRight;
 
-    public static final float WIDTH = 50f;
-    public static final float HEIGHT = 120f;
+    public static final float WIDTH = 38f;
+    public static final float HEIGHT = 90f;
 
     protected Rectangle bounds;
     protected Rectangle attackBox;
 
     protected float hp;
     protected float maxHp;
+    protected float energy;
+    protected float maxEnergy;
     protected float attackCooldown;
     protected boolean isAttacking;
     protected float attackTimer;
@@ -41,8 +45,8 @@ public abstract class Fighter {
     protected float dashCooldown;
     protected float knockdownTimer;
     protected int consecutiveHitsReceived;
-    protected boolean hasHitTarget; // Tránh ngắt animation giữa chừng khi đã trúng đòn
-    protected float stunTimer;       // Hiệu ứng "khựng" sau khi bị đá (Kick) — ngăn di chuyển & tấn công
+    protected boolean hasHitTarget; // TrÃ¡nh ngáº¯t animation giá»¯a chá»«ng khi Ä‘Ã£ trÃºng Ä‘Ã²n
+    protected float stunTimer;       // Hiá»‡u á»©ng "khá»±ng" sau khi bá»‹ Ä‘Ã¡ (Kick) â€” ngÄƒn di chuyá»ƒn & táº¥n cÃ´ng
 
     protected AnimState animState;
     protected float animTimer;
@@ -61,6 +65,8 @@ public abstract class Fighter {
 
         maxHp = Constants.MAX_HP;
         this.hp = this.maxHp;
+        maxEnergy = 100f;
+        this.energy = this.maxEnergy;
         animState = AnimState.IDLE;
         bodyColor = color;
         currentAttackType = AttackType.PUNCH;
@@ -71,27 +77,64 @@ public abstract class Fighter {
         hasHitTarget = false;
     }
 
-    public void update(float delta) {
+    // Lá»›p ná»™i bá»™ Ä‘á»ƒ lÆ°u trá»¯ tráº¡ng thÃ¡i bÃ³ng má» khi tá»‘c biáº¿n
+    protected class DashGhost {
+        float x, y;
+        AnimState animState;
+        float animTimer;
+        float attackTimer;
+        AttackType currentAttackType;
+        boolean isBlocking;
+        boolean facingRight;
+        float lifeTime;
+        float maxLifeTime = 0.35f;
+    }
+
+    protected java.util.List<DashGhost> dashGhosts = new java.util.ArrayList<>();
+
+    public void update(float delta, List<Platform> platforms) {
         boolean wasOnGround = onGround;
+        float prevY = position.y;
 
         velocity.y += Constants.GRAVITY * delta;
         position.x += velocity.x * delta;
         position.y += velocity.y * delta;
 
-        if (position.y <= Constants.GROUND_Y) {
+        boolean landedOnPlatform = false;
+        if (velocity.y < 0) {
+            for (Platform plat : platforms) {
+                float platTop = plat.getY() + plat.getHeight();
+                if (prevY >= platTop - 0.1f) {
+                    if (position.y <= platTop) {
+                        if (position.x + WIDTH > plat.getX() && position.x < plat.getX() + plat.getWidth()) {
+                            position.y = platTop;
+                            velocity.y = 0f;
+                            onGround = true;
+                            landedOnPlatform = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (!landedOnPlatform && position.y <= Constants.GROUND_Y) {
             position.y = Constants.GROUND_Y;
             velocity.y = 0f;
             onGround = true;
+            landedOnPlatform = true; // Use this variable to represent landing on anything
+        } else if (!landedOnPlatform && position.y > Constants.GROUND_Y) {
+            onGround = false;
+        }
 
+        if (landedOnPlatform) {
             if (!wasOnGround && !isAttacking) {
                 setAnimState(AnimState.IDLE);
             }
-            if (!wasOnGround && onGround) {
+            if (!wasOnGround) {
                 float dustX = position.x + WIDTH / 2f;
                 ParticleSystem.getInstance().emit(ParticleEffect.EffectType.DUST_LAND, dustX, position.y);
             }
-        } else {
-            onGround = false;
         }
 
         final float leftLimit = 20f;
@@ -123,7 +166,7 @@ public abstract class Fighter {
         if (isAttacking) {
             attackTimer -= delta;
             
-            // Cập nhật vị trí attackBox theo nhân vật
+            // Cáº­p nháº­t vá»‹ trÃ­ attackBox theo nhÃ¢n váº­t
             float boxW = Constants.PUNCH_RANGE;
             float boxH = HEIGHT * 0.5f;
             if (currentAttackType == AttackType.KICK)
@@ -152,6 +195,15 @@ public abstract class Fighter {
 
         if (animState == AnimState.WALK || animState == AnimState.IDLE) {
             animTimer += delta;
+        }
+
+        // Cáº­p nháº­t thá»i gian sá»‘ng cá»§a cÃ¡c bÃ³ng má»
+        for (int i = dashGhosts.size() - 1; i >= 0; i--) {
+            DashGhost g = dashGhosts.get(i);
+            g.lifeTime += delta;
+            if (g.lifeTime >= g.maxLifeTime) {
+                dashGhosts.remove(i);
+            }
         }
 
         if (knockdownTimer > 0f) {
@@ -216,9 +268,13 @@ public abstract class Fighter {
     }
 
     public boolean attack(AttackType type) {
-        // Bắt buộc phải chờ hết attackCooldown, không đang đánh, không bị khựng/ngã
-        if (attackCooldown > 0 || isAttacking || knockdownTimer > 0f || stunTimer > 0f)
+        // Có thể spam các chiêu miễn là con năng lượng (Bỏ check attackCooldown)
+        if (isAttacking || knockdownTimer > 0f || stunTimer > 0f)
             return false;
+            
+        if (type == AttackType.ENERGY && energy < 20f) {
+            return false;
+        }
 
         if (isBlocking)
             isBlocking = false;
@@ -227,13 +283,18 @@ public abstract class Fighter {
         isAttacking = true;
         attackTimer = ATTACK_DURATION;
         hasHitTarget = false; // Bắt đầu chiêu mới, reset va chạm
-
-        // Thiết lập thời gian hồi chiêu dựa theo loại đòn tấn công
+        
+        // Vẫn thiết lập cooldown để quản lý trạng thái, nhưng không chặn spam
         attackCooldown = switch (type) {
             case PUNCH -> Constants.PUNCH_COOLDOWN;
             case KICK -> Constants.KICK_COOLDOWN;
             case ENERGY -> Constants.ENERGY_COOLDOWN;
         };
+
+        if (type == AttackType.ENERGY) {
+            energy -= 20f;
+        }
+        
         setAnimState(AnimState.ATTACK);
 
         float boxW = Constants.PUNCH_RANGE;
@@ -257,7 +318,7 @@ public abstract class Fighter {
         if (currentAttackType == AttackType.ENERGY)
             return false;
 
-        // Chặn trúng đòn ảo: mục tiêu phải ở trước mặt và trong tầm ngang hợp lệ.
+        // Cháº·n trÃºng Ä‘Ã²n áº£o: má»¥c tiÃªu pháº£i á»Ÿ trÆ°á»›c máº·t vÃ  trong táº§m ngang há»£p lá»‡.
         float dir = facingRight ? 1f : -1f;
         float toTarget = target.getCenterX() - getCenterX();
         if (toTarget * dir <= 0f)
@@ -281,12 +342,15 @@ public abstract class Fighter {
         if (attackBox.overlaps(target.bounds)) {
             target.receiveHit(getCurrentAttackDamage());
 
-            // Áp dụng hiệu ứng "khựng" (stun) đặc biệt khi bị đá
+            // Ãp dá»¥ng hiá»‡u á»©ng "khá»±ng" (stun) Ä‘áº·c biá»‡t khi bá»‹ Ä‘Ã¡
             if (currentAttackType == AttackType.KICK) {
                 target.applyStun(0.22f);
+                recoverEnergy(12f);
+            } else if (currentAttackType == AttackType.PUNCH) {
+                recoverEnergy(10f);
             }
 
-            // Tính toán lực đẩy lùi (Knock-back)
+            // TÃ­nh toÃ¡n lá»±c Ä‘áº©y lÃ¹i (Knock-back)
             float knockDir = facingRight ? 1f : -1f;
             float kbX = switch (currentAttackType) {
                 case PUNCH -> 150f;
@@ -301,7 +365,7 @@ public abstract class Fighter {
             target.velocity.x = knockDir * kbX;
             target.velocity.y = kbY;
 
-            // Đánh dấu đã đánh trúng
+            // ÄÃ¡nh dáº¥u Ä‘Ã£ Ä‘Ã¡nh trÃºng
             hasHitTarget = true;
             return true;
         }
@@ -326,9 +390,9 @@ public abstract class Fighter {
     }
 
     /**
-     * Áp dụng hiệu ứng khựng (stun) ngắn sau khi bị đá.
-     * Trong thời gian này nhân vật không thể di chuyển hoặc tấn công.
-     * Knockdown có ưu tiên cao hơn (stun không ghi đè knockdown).
+     * Ãp dá»¥ng hiá»‡u á»©ng khá»±ng (stun) ngáº¯n sau khi bá»‹ Ä‘Ã¡.
+     * Trong thá»i gian nÃ y nhÃ¢n váº­t khÃ´ng thá»ƒ di chuyá»ƒn hoáº·c táº¥n cÃ´ng.
+     * Knockdown cÃ³ Æ°u tiÃªn cao hÆ¡n (stun khÃ´ng ghi Ä‘Ã¨ knockdown).
      */
     public void applyStun(float duration) {
         if (knockdownTimer <= 0f) {
@@ -337,12 +401,12 @@ public abstract class Fighter {
     }
 
     /**
-     * Trả về true nếu nhân vật đang trong thời gian hồi chiêu
-     * (đã tấn công xong nhưng chưa thể tấn công lại).
-     * Hữu ích cho AI để phát hiện sơ hở của đối thủ.
+     * Tráº£ vá» true náº¿u nhÃ¢n váº­t Ä‘ang trong thá»i gian há»“i chiÃªu
+     * (Ä‘Ã£ táº¥n cÃ´ng xong nhÆ°ng chÆ°a thá»ƒ táº¥n cÃ´ng láº¡i).
+     * Há»¯u Ã­ch cho AI Ä‘á»ƒ phÃ¡t hiá»‡n sÆ¡ há»Ÿ cá»§a Ä‘á»‘i thá»§.
      */
     public boolean isInAttackCooldown() {
-        return attackCooldown > 0f && !isAttacking;
+        return false;
     }
 
     public void setBlocking(boolean blocking) {
@@ -360,18 +424,44 @@ public abstract class Fighter {
     }
 
     public boolean dash() {
-        if (dashCooldown > 0f || knockdownTimer > 0f)
+        if (knockdownTimer > 0f || stunTimer > 0f || energy < 10f)
             return false;
+            
+        energy -= 10f;
+        
         float dir = facingRight ? 1f : -1f;
-        offsetX(dir * Constants.DASH_DISTANCE);
         float leftLimit = 20f;
         float rightLimit = Constants.SCREEN_WIDTH - WIDTH - 20f;
-        if (position.x < leftLimit)
-            position.x = leftLimit;
-        if (position.x > rightLimit)
-            position.x = rightLimit;
+        
+        float startX = position.x;
+        float targetX = position.x + (dir * Constants.DASH_DISTANCE);
+        
+        if (targetX < leftLimit) targetX = leftLimit;
+        if (targetX > rightLimit) targetX = rightLimit;
+        
+        float actualDist = targetX - startX;
+        
+        // Táº¡o cÃ¡c bÃ³ng má» dá»c theo Ä‘Æ°á»ng lÆ°á»›t
+        if (Math.abs(actualDist) > 5f) {
+            int numGhosts = 5;
+            for (int i = 0; i < numGhosts; i++) {
+                DashGhost ghost = new DashGhost();
+                ghost.x = startX + (actualDist * ((float)i / numGhosts));
+                ghost.y = position.y;
+                ghost.animState = animState;
+                ghost.animTimer = animTimer;
+                ghost.attackTimer = attackTimer;
+                ghost.currentAttackType = currentAttackType;
+                ghost.isBlocking = isBlocking;
+                ghost.facingRight = facingRight;
+                // CÃ¡c bÃ³ng sinh ra á»Ÿ xa (i nhá») báº¯t Ä‘áº§u vá»›i lifeTime lá»›n hÆ¡n Ä‘á»ƒ biáº¿n máº¥t nhanh hÆ¡n
+                ghost.lifeTime = (numGhosts - 1 - i) * 0.05f;
+                dashGhosts.add(ghost);
+            }
+        }
+
+        position.x = targetX;
         bounds.setPosition(position.x, position.y);
-        dashCooldown = Constants.DASH_COOLDOWN;
         return true;
     }
 
@@ -393,81 +483,101 @@ public abstract class Fighter {
         return hp <= 0;
     }
 
-    private static final float LINE_THICKNESS = 6f;
+    private static final float LINE_THICKNESS = 5f;
 
     public void renderFilled(ShapeRenderer sr) {
-        Color renderColor = getEffectiveColor();
-        sr.setColor(renderColor);
+        // Render bÃ³ng má» phÃ­a dÆ°á»›i
+        for (DashGhost g : dashGhosts) {
+            if (g.lifeTime >= g.maxLifeTime) continue;
+            float alpha = 1f - (g.lifeTime / g.maxLifeTime);
+            alpha = Math.max(0f, Math.min(alpha * 0.45f, 0.45f)); 
+            Color ghostColor = new Color(bodyColor.r, bodyColor.g, bodyColor.b, alpha);
+            drawFilledAt(sr, g.x, g.y, g.facingRight, false, g.attackTimer, g.currentAttackType, ghostColor);
+        }
 
-        float cx = position.x + WIDTH / 2f;
-        float by = position.y;
-        float headR = 15f;
+        Color renderColor = getEffectiveColor();
+        drawFilledAt(sr, position.x, position.y, facingRight, isAttacking, attackTimer, currentAttackType, renderColor);
+    }
+
+    private void drawFilledAt(ShapeRenderer sr, float px, float py, boolean fRight, boolean attacking, float attTimer, AttackType attType, Color color) {
+        sr.setColor(color);
+        float cx = px + WIDTH / 2f;
+        float by = py;
+        float headR = 12f;
         float headY = by + HEIGHT - headR;
 
         sr.circle(cx, headY, headR);
 
-        if (isAttacking && currentAttackType == AttackType.ENERGY) {
-            float progress = 1f - (attackTimer / ATTACK_DURATION);
+        if (attacking && attType == AttackType.ENERGY) {
+            float progress = 1f - (attTimer / ATTACK_DURATION);
             float eased = (float) Math.sin(progress * Math.PI);
             float orbOffset = 36f + 42f * eased;
-            float orbX = facingRight ? (cx + orbOffset) : (cx - orbOffset);
-            float orbY = position.y + HEIGHT * 0.62f;
+            float orbX = fRight ? (cx + orbOffset) : (cx - orbOffset);
+            float orbY = py + HEIGHT * 0.62f;
             float orbR = 8f + 6f * eased;
 
-            // Lõi sáng của cầu năng lượng.
-            sr.setColor(0.45f, 0.90f, 1.0f, 1f);
+            sr.setColor(0.45f, 0.90f, 1.0f, color.a);
             sr.circle(orbX, orbY, orbR);
 
-            // Viền mờ để dễ nhìn hơn trên nhiều nền.
-            sr.setColor(0.75f, 0.98f, 1.0f, 0.55f);
+            sr.setColor(0.75f, 0.98f, 1.0f, color.a * 0.55f);
             sr.circle(orbX, orbY, orbR + 4f);
 
-            // Trả lại màu nhân vật cho các phần được vẽ tiếp theo.
-            sr.setColor(renderColor);
+            sr.setColor(color);
         }
     }
 
     public void renderLines(ShapeRenderer sr) {
-        Color renderColor = getEffectiveColor();
-        sr.setColor(renderColor);
+        // Render bÃ³ng má»
+        for (DashGhost g : dashGhosts) {
+            if (g.lifeTime >= g.maxLifeTime) continue;
+            float alpha = 1f - (g.lifeTime / g.maxLifeTime);
+            alpha = Math.max(0f, Math.min(alpha * 0.45f, 0.45f)); 
+            Color ghostColor = new Color(bodyColor.r, bodyColor.g, bodyColor.b, alpha);
+            drawLinesAt(sr, g.x, g.y, g.facingRight, g.animState, g.animTimer, g.isBlocking, g.currentAttackType, g.attackTimer, ghostColor);
+        }
 
-        float cx = position.x + WIDTH / 2f;
-        float by = position.y;
-        float headR = 15f;
+        Color renderColor = getEffectiveColor();
+        drawLinesAt(sr, position.x, position.y, facingRight, animState, animTimer, isBlocking, currentAttackType, attackTimer, renderColor);
+    }
+
+    private void drawLinesAt(ShapeRenderer sr, float px, float py, boolean fRight, AnimState aState, float aTimer, boolean blocking, AttackType attType, float attTimer, Color color) {
+        sr.setColor(color);
+
+        float cx = px + WIDTH / 2f;
+        float by = py;
+        float headR = 12f;
         float headY = by + HEIGHT - headR;
         float neckY = headY - headR + 2f;
+        
+        // Vẽ đầu (Line/Wireframe cũng cần có đầu tròn)
+        sr.circle(cx, headY, headR);
 
         float hipY = by + HEIGHT * 0.38f;
         float handY = by + HEIGHT * 0.72f;
 
         float legSwing = 0f;
-        if (animState == AnimState.WALK)
-            legSwing = (float) Math.sin(animTimer * 10f) * 25f;
-        else if (animState == AnimState.JUMP)
+        if (aState == AnimState.WALK)
+            legSwing = (float) Math.sin(aTimer * 10f) * 25f;
+        else if (aState == AnimState.JUMP)
             legSwing = -20f;
 
-        // MỚI: Tính toán mức độ hoàn thành của đòn đánh (Sine Wave 0 -> 1 -> 0)
-        // Dùng để tạo độ co duỗi tự nhiên của cơ thể
         float p = 0f;
-        if (animState == AnimState.ATTACK) {
-            float progress = 1f - (attackTimer / ATTACK_DURATION);
+        if (aState == AnimState.ATTACK) {
+            float progress = 1f - (attTimer / ATTACK_DURATION);
             p = (float) Math.sin(progress * Math.PI);
         }
 
-        // 1. GÓC MẶC ĐỊNH LÚC ĐỨNG YÊN
         float armAngleL = 225f - legSwing * 0.6f;
         float armAngleR = 315f + legSwing * 0.6f;
         float legAngleL = 240f + legSwing;
         float legAngleR = 300f - legSwing;
 
-        // Offset linh hoạt của thân
         float modCx = cx;
         float modNeckY = neckY;
         float modHipY = hipY;
 
-        // 2. TƯ THẾ BLOCK
-        if (isBlocking) {
-            if (facingRight) {
+        if (blocking) {
+            if (fRight) {
                 armAngleL = 70f;
                 armAngleR = 45f;
             } else {
@@ -475,30 +585,21 @@ public abstract class Fighter {
                 armAngleR = 110f;
             }
         }
-        // 3. TƯ THẾ TẤN CÔNG ĐỘNG (Đã làm gọn lại theo ý bạn)
-        else if (animState == AnimState.ATTACK) {
-            if (currentAttackType == AttackType.PUNCH) {
-                if (facingRight) {
-                    // Chỉ vung tay phải thẳng ra (360 độ)
+        else if (aState == AnimState.ATTACK) {
+            if (attType == AttackType.PUNCH) {
+                if (fRight) {
                     armAngleR = 315f + 45f * p;
-                    // Tay trái và toàn bộ thân dưới giữ nguyên
                 } else {
-                    // Chỉ vung tay trái thẳng ra (180 độ)
                     armAngleL = 225f - 45f * p;
-                    // Tay phải và toàn bộ thân dưới giữ nguyên
                 }
-            } else if (currentAttackType == AttackType.KICK) {
-                if (facingRight) {
-                    // Chỉ vung chân phải lên cao
+            } else if (attType == AttackType.KICK) {
+                if (fRight) {
                     legAngleR = 300f + 80f * p;
-                    // Chân trái và hai tay giữ nguyên như lúc đứng/đi
                 } else {
-                    // Chỉ vung chân trái lên cao
                     legAngleL = 240f - 80f * p;
-                    // Chân phải và hai tay giữ nguyên
                 }
-            } else if (currentAttackType == AttackType.ENERGY) {
-                if (facingRight) {
+            } else if (attType == AttackType.ENERGY) {
+                if (fRight) {
                     armAngleR = 315f + 45f * p;
                     armAngleL = 225f + 135f * p;
                 } else {
@@ -507,21 +608,17 @@ public abstract class Fighter {
                 }
             }
         }
-        // 4. TƯ THẾ BỊ HIT
-        else if (animState == AnimState.HIT) {
-            armAngleL = facingRight ? 200f : 340f;
-            armAngleR = facingRight ? 200f : 340f;
+        else if (aState == AnimState.HIT) {
+            armAngleL = fRight ? 200f : 340f;
+            armAngleR = fRight ? 200f : 340f;
             legAngleL = 250f;
             legAngleR = 290f;
-            modCx -= (facingRight ? 5f : -5f);
+            modCx -= (fRight ? 5f : -5f);
         }
 
-        // --- VẼ LÊN MÀN HÌNH ---
-        // Vẽ Thân
         sr.rectLine(modCx, modNeckY, modCx, modHipY, LINE_THICKNESS);
 
-        // Vẽ Tay
-        float armLen = 40f;
+        float armLen = 30f;
         float armLX = modCx + (float) Math.cos(Math.toRadians(armAngleL)) * armLen;
         float armLY = handY + (float) Math.sin(Math.toRadians(armAngleL)) * armLen;
         sr.rectLine(modCx, handY, armLX, armLY, LINE_THICKNESS);
@@ -530,7 +627,6 @@ public abstract class Fighter {
         float armRY = handY + (float) Math.sin(Math.toRadians(armAngleR)) * armLen;
         sr.rectLine(modCx, handY, armRX, armRY, LINE_THICKNESS);
 
-        // Vẽ Chân
         float legLen = HEIGHT * 0.42f;
         float legLX = modCx + (float) Math.cos(Math.toRadians(legAngleL)) * legLen;
         float legLY = modHipY + (float) Math.sin(Math.toRadians(legAngleL)) * legLen;
@@ -570,6 +666,14 @@ public abstract class Fighter {
 
     public float getHpPercent() {
         return hp / maxHp;
+    }
+
+    public float getEnergyPercent() {
+        return energy / maxEnergy;
+    }
+
+    public void recoverEnergy(float amount) {
+        energy = Math.min(maxEnergy, energy + amount);
     }
 
     public Rectangle getBounds() {
@@ -624,6 +728,7 @@ public abstract class Fighter {
         position.set(startX, startY);
         velocity.set(0, 0);
         hp = maxHp;
+        energy = maxEnergy;
         isAttacking = false;
         attackCooldown = 0;
         attackTimer = 0;
@@ -637,6 +742,8 @@ public abstract class Fighter {
         facingRight = faceRight;
         onGround = false;
         hasHitTarget = false;
+        dashGhosts.clear();
         setAnimState(AnimState.IDLE);
     }
 }
+

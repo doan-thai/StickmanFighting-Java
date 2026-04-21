@@ -43,6 +43,11 @@ public class I18n {
         enDict.put("Người chơi ", "Player ");
         enDict.put(" Thắng!", " Wins!");
         enDict.put("QUAY LẠI", "BACK");
+        enDict.put("Map 1 (Phẳng)", "Map 1 (Flat)");
+        enDict.put("Map 2 (4 Bục)", "Map 2 (4 Platforms)");
+        enDict.put("Map 3 (7 Bục)", "Map 3 (7 Platforms)");
+        enDict.put("CHỌN BẢN ĐỒ", "CHOOSE MAP");
+        enDict.put("TRỞ LẠI", "BACK");
         // We can add more if needed
     }
 

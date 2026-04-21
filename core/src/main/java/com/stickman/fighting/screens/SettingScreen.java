@@ -138,10 +138,19 @@ public class SettingScreen implements Screen {
             return;
         }
 
-        // Render màn hình phía sau trước
-        if (previousScreen != null) {
-            previousScreen.render(delta);
-        } else {
+        // Render màn hình phía sau trước (Chỉ render nếu chưa bị dispose)
+        // Lưu ý: LibGDX không có method isDisposed() mặc định, nhưng chúng ta 
+        // giả định nếu nó vẫn được truyền vào là nó còn khả dụng.
+        // Một cách an toàn hơn là check null và bắt Exception nếu cần.
+        try {
+            if (previousScreen != null) {
+                previousScreen.render(delta);
+            } else {
+                Gdx.gl.glClearColor(0.15f, 0.08f, 0.02f, 1f);
+                Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+            }
+        } catch (Exception e) {
+            // Nếu screen trước bị lỗi (do dispose), xóa nền để không bị rác màn hình
             Gdx.gl.glClearColor(0.15f, 0.08f, 0.02f, 1f);
             Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         }

@@ -39,6 +39,7 @@ public class MyFightingGame extends Game {
     public void dispose() {
         batch.dispose();
         SoundManager.getInstance().dispose();
+        com.stickman.fighting.particles.ParticleSystem.getInstance().dispose();
         if (screen != null) screen.dispose();
     }
 }
