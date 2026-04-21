@@ -18,7 +18,7 @@ public abstract class Fighter {
     }
 
     public enum AttackType {
-        PUNCH, KICK, ENERGY
+        PUNCH, KICK, ENERGY, THROW_WEAPON
     }
 
     protected Vector2 position;
@@ -45,14 +45,26 @@ public abstract class Fighter {
     protected float dashCooldown;
     protected float knockdownTimer;
     protected int consecutiveHitsReceived;
-    protected boolean hasHitTarget; // TrÃ¡nh ngáº¯t animation giá»¯a chá»«ng khi Ä‘Ã£ trÃºng Ä‘Ã²n
-    protected float stunTimer;       // Hiá»‡u á»©ng "khá»±ng" sau khi bá»‹ Ä‘Ã¡ (Kick) â€” ngÄƒn di chuyá»ƒn & táº¥n cÃ´ng
+    protected boolean hasHitTarget; // Tránh ngắt animation giữa chừng khi đã trúng đòn
+    protected float stunTimer;       // Hiệu ứng "khựng" sau khi bị đá (Kick) — ngăn di chuyển & tấn công
+
+    protected boolean hasWeapon = false;
+    protected boolean weaponUsedThisMatch = false;
 
     protected AnimState animState;
     protected float animTimer;
     protected float hitFlashTimer;
 
     protected Color bodyColor;
+
+    // Hệ thống Trail cho vũ khí
+    protected static class WeaponTrail {
+        float x, y, rotation;
+        float life;
+        boolean facingRight;
+    }
+
+    protected java.util.List<WeaponTrail> weaponTrails = new java.util.ArrayList<>();
 
     public Fighter(float startX, float startY, Color color) {
         position = new Vector2(startX, startY);
@@ -66,7 +78,7 @@ public abstract class Fighter {
         maxHp = Constants.MAX_HP;
         this.hp = this.maxHp;
         maxEnergy = 100f;
-        this.energy = this.maxEnergy;
+        this.energy = 50f; // Khởi đầu 50% để tránh OP
         animState = AnimState.IDLE;
         bodyColor = color;
         currentAttackType = AttackType.PUNCH;
@@ -77,7 +89,7 @@ public abstract class Fighter {
         hasHitTarget = false;
     }
 
-    // Lá»›p ná»™i bá»™ Ä‘á»ƒ lÆ°u trá»¯ tráº¡ng thÃ¡i bÃ³ng má» khi tá»‘c biáº¿n
+    // Lớp nội bộ để lưu trữ trạng thái bóng mờ khi tốc biến
     protected class DashGhost {
         float x, y;
         AnimState animState;
@@ -166,7 +178,7 @@ public abstract class Fighter {
         if (isAttacking) {
             attackTimer -= delta;
             
-            // Cáº­p nháº­t vá»‹ trÃ­ attackBox theo nhÃ¢n váº­t
+            // Cập nhật vị trí attackBox theo nhân vật
             float boxW = Constants.PUNCH_RANGE;
             float boxH = HEIGHT * 0.5f;
             if (currentAttackType == AttackType.KICK)
@@ -197,7 +209,7 @@ public abstract class Fighter {
             animTimer += delta;
         }
 
-        // Cáº­p nháº­t thá»i gian sá»‘ng cá»§a cÃ¡c bÃ³ng má»
+        // Cập nhật thời gian sống của các bóng mờ
         for (int i = dashGhosts.size() - 1; i >= 0; i--) {
             DashGhost g = dashGhosts.get(i);
             g.lifeTime += delta;
@@ -267,6 +279,16 @@ public abstract class Fighter {
         return attack(AttackType.ENERGY);
     }
 
+    public boolean throwWeapon() {
+        if (!hasWeapon)
+            return false;
+        if (attack(AttackType.THROW_WEAPON)) {
+            hasWeapon = false; // Mất luôn vũ khí sau khi ném
+            return true;
+        }
+        return false;
+    }
+
     public boolean attack(AttackType type) {
         // Có thể spam các chiêu miễn là con năng lượng (Bỏ check attackCooldown)
         if (isAttacking || knockdownTimer > 0f || stunTimer > 0f)
@@ -288,7 +310,7 @@ public abstract class Fighter {
         attackCooldown = switch (type) {
             case PUNCH -> Constants.PUNCH_COOLDOWN;
             case KICK -> Constants.KICK_COOLDOWN;
-            case ENERGY -> Constants.ENERGY_COOLDOWN;
+            case ENERGY, THROW_WEAPON -> Constants.ENERGY_COOLDOWN;
         };
 
         if (type == AttackType.ENERGY) {
@@ -318,7 +340,7 @@ public abstract class Fighter {
         if (currentAttackType == AttackType.ENERGY)
             return false;
 
-        // Cháº·n trÃºng Ä‘Ã²n áº£o: má»¥c tiÃªu pháº£i á»Ÿ trÆ°á»›c máº·t vÃ  trong táº§m ngang há»£p lá»‡.
+        // Chặn trúng đòn ảo: mục tiêu phải ở trước mặt và trong tầm ngang hợp lệ.
         float dir = facingRight ? 1f : -1f;
         float toTarget = target.getCenterX() - getCenterX();
         if (toTarget * dir <= 0f)
@@ -334,7 +356,7 @@ public abstract class Fighter {
         float maxReach = switch (currentAttackType) {
             case PUNCH -> Constants.PUNCH_RANGE;
             case KICK -> Constants.KICK_RANGE;
-            case ENERGY -> Constants.ATTACK_RANGE + 28f;
+            case ENERGY, THROW_WEAPON -> Constants.ATTACK_RANGE + 28f;
         };
         if (edgeDistance > maxReach)
             return false;
@@ -342,7 +364,7 @@ public abstract class Fighter {
         if (attackBox.overlaps(target.bounds)) {
             target.receiveHit(getCurrentAttackDamage());
 
-            // Ãp dá»¥ng hiá»‡u á»©ng "khá»±ng" (stun) Ä‘áº·c biá»‡t khi bá»‹ Ä‘Ã¡
+            // Áp dụng hiệu ứng "khựng" (stun) đặc biệt khi bị đá
             if (currentAttackType == AttackType.KICK) {
                 target.applyStun(0.22f);
                 recoverEnergy(12f);
@@ -350,22 +372,22 @@ public abstract class Fighter {
                 recoverEnergy(10f);
             }
 
-            // TÃ­nh toÃ¡n lá»±c Ä‘áº©y lÃ¹i (Knock-back)
+            // Tính toán lực đẩy lùi (Knock-back)
             float knockDir = facingRight ? 1f : -1f;
             float kbX = switch (currentAttackType) {
                 case PUNCH -> 150f;
                 case KICK -> 200f;
-                case ENERGY -> 240f;
+                case ENERGY, THROW_WEAPON -> 240f;
             };
             float kbY = switch (currentAttackType) {
                 case PUNCH -> 95f;
                 case KICK -> 130f;
-                case ENERGY -> 160f;
+                case ENERGY, THROW_WEAPON -> 160f;
             };
             target.velocity.x = knockDir * kbX;
             target.velocity.y = kbY;
 
-            // ÄÃ¡nh dáº¥u Ä‘Ã£ Ä‘Ã¡nh trÃºng
+            // Đánh dấu đã đánh trúng
             hasHitTarget = true;
             return true;
         }
@@ -390,9 +412,25 @@ public abstract class Fighter {
     }
 
     /**
-     * Ãp dá»¥ng hiá»‡u á»©ng khá»±ng (stun) ngáº¯n sau khi bá»‹ Ä‘Ã¡.
-     * Trong thá»i gian nÃ y nhÃ¢n váº­t khÃ´ng thá»ƒ di chuyá»ƒn hoáº·c táº¥n cÃ´ng.
-     * Knockdown cÃ³ Æ°u tiÃªn cao hÆ¡n (stun khÃ´ng ghi Ä‘Ã¨ knockdown).
+     * Nhận sát thương từ chiêu tối thượng (ví dụ: ném kiếm).
+     * Nếu block, chỉ giảm 20% sát thương (nhận 80%).
+     */
+    public void receiveUltimateHit(float damage) {
+        float finalDamage = isBlocking ? damage * 0.8f : damage;
+        hp = Math.max(0f, hp - finalDamage);
+
+        // Luôn bị khựng nhẹ khi dính chiêu này
+        hitFlashTimer = 0.25f;
+        setAnimState(AnimState.HIT);
+        isBlocking = false;
+
+        SoundManager.getInstance().playSoundWithVariation(SoundManager.SoundEffect.HIT_RECEIVE, 0.8f);
+    }
+
+    /**
+     * Áp dụng hiệu ứng khựng (stun) ngắn sau khi bị đá.
+     * Trong thời gian này nhân vật không thể di chuyển hoặc tấn công.
+     * Knockdown có ưu tiên cao hơn (stun không ghi đè knockdown).
      */
     public void applyStun(float duration) {
         if (knockdownTimer <= 0f) {
@@ -401,9 +439,9 @@ public abstract class Fighter {
     }
 
     /**
-     * Tráº£ vá» true náº¿u nhÃ¢n váº­t Ä‘ang trong thá»i gian há»“i chiÃªu
-     * (Ä‘Ã£ táº¥n cÃ´ng xong nhÆ°ng chÆ°a thá»ƒ táº¥n cÃ´ng láº¡i).
-     * Há»¯u Ã­ch cho AI Ä‘á»ƒ phÃ¡t hiá»‡n sÆ¡ há»Ÿ cá»§a Ä‘á»‘i thá»§.
+     * Trả về true nếu nhân vật đang trong thời gian hồi chiêu
+     * (đã tấn công xong nhưng chưa thể tấn công lại).
+     * Hữu ích cho AI để phát hiện sơ hở của đối thủ.
      */
     public boolean isInAttackCooldown() {
         return false;
@@ -441,7 +479,7 @@ public abstract class Fighter {
         
         float actualDist = targetX - startX;
         
-        // Táº¡o cÃ¡c bÃ³ng má» dá»c theo Ä‘Æ°á»ng lÆ°á»›t
+        // Tạo các bóng mờ dọc theo đường lướt
         if (Math.abs(actualDist) > 5f) {
             int numGhosts = 5;
             for (int i = 0; i < numGhosts; i++) {
@@ -454,7 +492,7 @@ public abstract class Fighter {
                 ghost.currentAttackType = currentAttackType;
                 ghost.isBlocking = isBlocking;
                 ghost.facingRight = facingRight;
-                // CÃ¡c bÃ³ng sinh ra á»Ÿ xa (i nhá») báº¯t Ä‘áº§u vá»›i lifeTime lá»›n hÆ¡n Ä‘á»ƒ biáº¿n máº¥t nhanh hÆ¡n
+                // Các bóng sinh ra ở xa (i nhỏ) bắt đầu với lifeTime lớn hơn để biến mất nhanh hơn
                 ghost.lifeTime = (numGhosts - 1 - i) * 0.05f;
                 dashGhosts.add(ghost);
             }
@@ -472,11 +510,30 @@ public abstract class Fighter {
     }
 
     private float getCurrentAttackDamage() {
-        return switch (currentAttackType) {
+        float damage = switch (currentAttackType) {
             case PUNCH -> Constants.PUNCH_DAMAGE;
             case KICK -> Constants.KICK_DAMAGE;
-            case ENERGY -> Constants.ENERGY_DAMAGE;
+            case ENERGY, THROW_WEAPON -> Constants.ENERGY_DAMAGE;
         };
+        if (currentAttackType == AttackType.PUNCH && hasWeapon) {
+            damage *= 2f;
+        }
+        return damage;
+    }
+
+    public boolean hasWeapon() {
+        return hasWeapon;
+    }
+
+    public void setHasWeapon(boolean hasWeapon) {
+        this.hasWeapon = hasWeapon;
+        if (hasWeapon) {
+            this.weaponUsedThisMatch = true;
+        }
+    }
+
+    public boolean isWeaponUsedThisMatch() {
+        return weaponUsedThisMatch;
     }
 
     public boolean isDead() {
@@ -486,7 +543,7 @@ public abstract class Fighter {
     private static final float LINE_THICKNESS = 5f;
 
     public void renderFilled(ShapeRenderer sr) {
-        // Render bÃ³ng má» phÃ­a dÆ°á»›i
+        // Render bóng mờ phía dưới
         for (DashGhost g : dashGhosts) {
             if (g.lifeTime >= g.maxLifeTime) continue;
             float alpha = 1f - (g.lifeTime / g.maxLifeTime);
@@ -527,7 +584,7 @@ public abstract class Fighter {
     }
 
     public void renderLines(ShapeRenderer sr) {
-        // Render bÃ³ng má»
+        // Render bóng mờ
         for (DashGhost g : dashGhosts) {
             if (g.lifeTime >= g.maxLifeTime) continue;
             float alpha = 1f - (g.lifeTime / g.maxLifeTime);
@@ -553,7 +610,7 @@ public abstract class Fighter {
         sr.circle(cx, headY, headR);
 
         float hipY = by + HEIGHT * 0.38f;
-        float handY = by + HEIGHT * 0.72f;
+        float armBaseY = by + HEIGHT * 0.72f;
 
         float legSwing = 0f;
         if (aState == AnimState.WALK)
@@ -620,12 +677,12 @@ public abstract class Fighter {
 
         float armLen = 30f;
         float armLX = modCx + (float) Math.cos(Math.toRadians(armAngleL)) * armLen;
-        float armLY = handY + (float) Math.sin(Math.toRadians(armAngleL)) * armLen;
-        sr.rectLine(modCx, handY, armLX, armLY, LINE_THICKNESS);
+        float armLY = armBaseY + (float) Math.sin(Math.toRadians(armAngleL)) * armLen;
+        sr.rectLine(modCx, armBaseY, armLX, armLY, LINE_THICKNESS);
 
         float armRX = modCx + (float) Math.cos(Math.toRadians(armAngleR)) * armLen;
-        float armRY = handY + (float) Math.sin(Math.toRadians(armAngleR)) * armLen;
-        sr.rectLine(modCx, handY, armRX, armRY, LINE_THICKNESS);
+        float armRY = armBaseY + (float) Math.sin(Math.toRadians(armAngleR)) * armLen;
+        sr.rectLine(modCx, armBaseY, armRX, armRY, LINE_THICKNESS);
 
         float legLen = HEIGHT * 0.42f;
         float legLX = modCx + (float) Math.cos(Math.toRadians(legAngleL)) * legLen;
@@ -635,6 +692,87 @@ public abstract class Fighter {
         float legRX = modCx + (float) Math.cos(Math.toRadians(legAngleR)) * legLen;
         float legRY = modHipY + (float) Math.sin(Math.toRadians(legAngleR)) * legLen;
         sr.rectLine(modCx, modHipY, legRX, legRY, LINE_THICKNESS);
+    }
+
+    /**
+     * Cập nhật vệt mờ của vũ khí (Trail)
+     */
+    protected void updateWeaponTrail(float delta, float handX, float handY, float angle) {
+        if (!hasWeapon) {
+            weaponTrails.clear();
+            return;
+        }
+
+        // Tạo ghost mới nếu đang tấn công hoặc di chuyển nhanh
+        if (isAttacking || velocity.len() > 100f) {
+            WeaponTrail trail = new WeaponTrail();
+            trail.x = handX;
+            trail.y = handY;
+            trail.rotation = angle;
+            trail.life = 0.25f;
+            trail.facingRight = facingRight;
+            weaponTrails.add(trail);
+        }
+
+        // Cập nhật ghost cũ
+        for (int i = weaponTrails.size() - 1; i >= 0; i--) {
+            weaponTrails.get(i).life -= delta;
+            if (weaponTrails.get(i).life <= 0)
+                weaponTrails.remove(i);
+        }
+    }
+
+    public void renderWeapon(com.badlogic.gdx.graphics.g2d.SpriteBatch batch) {
+        if (!hasWeapon)
+            return;
+
+        // Tính toán vị trí tay để vẽ kiếm
+        float cx = position.x + WIDTH / 2f;
+        float armBaseY = position.y + HEIGHT * 0.72f;
+
+        float legSwing = 0f;
+        if (animState == AnimState.WALK)
+            legSwing = (float) Math.sin(animTimer * 10f) * 25f;
+
+        float armAngle = facingRight ? (315f + legSwing * 0.6f) : (225f - legSwing * 0.6f);
+
+        if (isBlocking) {
+            armAngle = facingRight ? 45f : 135f;
+        } else if (isAttacking && currentAttackType == AttackType.PUNCH) {
+            float progress = 1f - (attackTimer / ATTACK_DURATION);
+            float p = (float) Math.sin(progress * Math.PI);
+            armAngle = facingRight ? (315f + 45f * p) : (225f - 45f * p);
+        }
+
+        float armLen = 30f;
+        float handX = cx + (float) Math.cos(Math.toRadians(armAngle)) * armLen;
+        float handY = armBaseY + (float) Math.sin(Math.toRadians(armAngle)) * armLen;
+
+        // Vẽ Trail
+        updateWeaponTrail(com.badlogic.gdx.Gdx.graphics.getDeltaTime(), handX, handY, armAngle);
+        com.badlogic.gdx.graphics.g2d.TextureRegion sword = com.stickman.fighting.utils.WeaponRenderer.getSwordRegion();
+
+        for (WeaponTrail t : weaponTrails) {
+            batch.setColor(1f, 1f, 1f, t.life * 2f);
+            batch.draw(sword, t.x, t.y - 16, 0, 16, 128, 32, 0.45f, 0.45f, t.rotation);
+        }
+
+        // Vẽ Kiếm chính
+        batch.setColor(Color.WHITE);
+        batch.draw(sword, handX, handY - 16, 0, 16, 128, 32, 0.45f, 0.45f, armAngle);
+
+        // Nếu đủ năng lượng ném, kiếm phát sáng nhẹ
+        if (energy >= 99f) {
+            batch.setBlendFunction(com.badlogic.gdx.graphics.GL20.GL_SRC_ALPHA, com.badlogic.gdx.graphics.GL20.GL_ONE);
+            batch.setColor(1f, 0.8f, 0.2f, 0.3f);
+            batch.draw(sword, handX, handY - 16, 0, 16, 128, 32, 0.5f, 0.5f, armAngle);
+            batch.setBlendFunction(com.badlogic.gdx.graphics.GL20.GL_SRC_ALPHA,
+                    com.badlogic.gdx.graphics.GL20.GL_ONE_MINUS_SRC_ALPHA);
+        }
+
+        // Reset color so later draws (e.g. background next frame) are not
+        // tinted/dimmed.
+        batch.setColor(Color.WHITE);
     }
 
     private Color getEffectiveColor() {
@@ -728,7 +866,7 @@ public abstract class Fighter {
         position.set(startX, startY);
         velocity.set(0, 0);
         hp = maxHp;
-        energy = maxEnergy;
+        energy = 50f; // Reset về 50% thay vì 100%
         isAttacking = false;
         attackCooldown = 0;
         attackTimer = 0;
@@ -746,4 +884,3 @@ public abstract class Fighter {
         setAnimState(AnimState.IDLE);
     }
 }
-

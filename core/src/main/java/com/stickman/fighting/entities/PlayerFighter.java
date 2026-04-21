@@ -3,13 +3,10 @@ package com.stickman.fighting.entities;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
+import com.stickman.fighting.utils.SoundManager;
 
 /**
  * Nhân vật do người chơi điều khiển qua bàn phím.
- *
- * Player 1 (Xanh): A/D di chuyển, W nhảy, U block, I đấm, O đá, L tốc biến
- * Player 2 (Đỏ): ←/→ di chuyển, ↑ nhảy, Num4 block, Num5 đấm, Num6 đá, Num3 tốc
- * biến
  */
 public class PlayerFighter extends Fighter {
 
@@ -21,8 +18,8 @@ public class PlayerFighter extends Fighter {
 
     // Keybinding
     private final int keyLeft, keyRight, keyJump;
-    private final int keyBlock, keyPunch, keyKick, keyDash;
-    private final int altKeyBlock, altKeyPunch;
+    private final int keyBlock, keyPunch, keyKick, keyDash, keyWeapon;
+    private final int altKeyBlock, altKeyPunch, altKeyKick, altKeyDash, altKeyWeapon;
 
     public PlayerFighter(float startX, float startY,
             PlayerIndex index, Color color) {
@@ -38,19 +35,28 @@ public class PlayerFighter extends Fighter {
             keyPunch = Input.Keys.I;
             keyKick = Input.Keys.O;
             keyDash = Input.Keys.L;
+            keyWeapon = Input.Keys.J;
             altKeyBlock = -1;
             altKeyPunch = -1;
+            altKeyKick = -1;
+            altKeyDash = -1;
+            altKeyWeapon = -1;
         } else {
             keyLeft = Input.Keys.LEFT;
             keyRight = Input.Keys.RIGHT;
             keyJump = Input.Keys.UP;
+            // Numpad keys
             keyBlock = Input.Keys.NUMPAD_4;
             keyPunch = Input.Keys.NUMPAD_5;
             keyKick = Input.Keys.NUMPAD_6;
             keyDash = Input.Keys.NUMPAD_3;
-            // Hỗ trợ cả hàng số thường cho bàn phím không có numpad riêng.
+            keyWeapon = Input.Keys.NUMPAD_1;
+            // Hàng phím số thường làm phím thay thế (Alt)
             altKeyBlock = Input.Keys.NUM_4;
             altKeyPunch = Input.Keys.NUM_5;
+            altKeyKick = Input.Keys.NUM_6;
+            altKeyDash = Input.Keys.NUM_3;
+            altKeyWeapon = Input.Keys.NUM_1;
         }
     }
 
@@ -72,31 +78,41 @@ public class PlayerFighter extends Fighter {
             stopHorizontal();
         }
 
-        // Nhảy (chỉ khi mới nhấn – justPressed tránh giữ phím)
+        // Nhảy
         if (Gdx.input.isKeyJustPressed(keyJump)) {
             jump();
         }
 
-        // Tốc biến
-        if (Gdx.input.isKeyJustPressed(keyDash)) {
+        // Tốc biến (Dash)
+        if (isJustPressed(keyDash, altKeyDash)) {
             dash();
         }
 
-        // U+I / Num4+Num5: cầu năng lượng
+        // Kích hoạt vũ khí (J / Num1)
+        if (isJustPressed(keyWeapon, altKeyWeapon) && getEnergyPercent() >= 0.99f && !isWeaponUsedThisMatch()) {
+            setHasWeapon(true);
+            energy = 0;
+            SoundManager.getInstance().playSound(SoundManager.SoundEffect.ENERGY_HIT);
+        }
+
+        // Tuyệt chiêu: Block + Punch (U+I / Num4+5)
         boolean punchJustPressed = isJustPressed(keyPunch, altKeyPunch);
         if (isBlockingNow && punchJustPressed) {
-            energySkill();
+            if (hasWeapon()) {
+                throwWeapon();
+            } else {
+                energySkill();
+            }
             return;
         }
 
         if (punchJustPressed) {
             punch();
         }
-        if (Gdx.input.isKeyJustPressed(keyKick)) {
+
+        if (isJustPressed(keyKick, altKeyKick)) {
             kick();
         }
-
-        // Tự hướng mặt về phía đối thủ sẽ được set từ PlayScreen
     }
 
     private boolean isPressed(int primary, int alternate) {
